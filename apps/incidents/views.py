@@ -1133,10 +1133,6 @@ def kobo_accident_webhook(request):
         print("===== KOBO KEYS =====")
         print(list(data.keys()))
 
-        # =========================
-        # DATE ACCIDENT
-        # =========================
-
         accident_date_value = get_kobo_value(
             data,
             "accident_details/accident_date",
@@ -1156,10 +1152,6 @@ def kobo_accident_webhook(request):
                 status=400,
             )
 
-        # =========================
-        # IDENTIFIANT KOBO
-        # =========================
-
         kobo_id = (
             data.get("_id")
             or data.get("_uuid")
@@ -1173,32 +1165,16 @@ def kobo_accident_webhook(request):
             "reference",
         ) or f"ACC-{timezone.now().strftime('%Y%m%d')}-{str(kobo_id)[-6:]}"
 
-        # =========================
-        # GEOGRAPHIE
-        # =========================
-
         region_code = str(
-            get_kobo_value(
-                data,
-                "location/region",
-                "region",
-            ) or ""
+            get_kobo_value(data, "location/region", "region") or ""
         ).strip()
 
         cercle_code = str(
-            get_kobo_value(
-                data,
-                "location/cercle",
-                "cercle",
-            ) or ""
+            get_kobo_value(data, "location/cercle", "cercle") or ""
         ).strip()
 
         commune_code = str(
-            get_kobo_value(
-                data,
-                "location/commune",
-                "commune",
-            ) or ""
+            get_kobo_value(data, "location/commune", "commune") or ""
         ).strip()
 
         region_obj = None
@@ -1247,10 +1223,6 @@ def kobo_accident_webhook(request):
                 status=400,
             )
 
-        # =========================
-        # COORDONNEES
-        # =========================
-
         latitude = get_kobo_value(
             data,
             "location/latitude",
@@ -1266,7 +1238,7 @@ def kobo_accident_webhook(request):
         gps = get_kobo_value(
             data,
             "location/location_gps",
-            "location/location",
+            "location/gps",
             "location_gps",
             "gps",
         )
@@ -1279,10 +1251,6 @@ def kobo_accident_webhook(request):
             except Exception:
                 pass
 
-        # =========================
-        # TYPE ACCIDENT
-        # =========================
-
         category = get_kobo_value(
             data,
             "accident_details/type_accident",
@@ -1291,19 +1259,28 @@ def kobo_accident_webhook(request):
             "accident_type",
         ) or "Autre"
 
-        # =========================
-        # SAUVEGARDE
-        # =========================
+        submitted_by = get_kobo_value(
+            data,
+            "_submitted_by",
+            "submitter_username",
+        )
+
+        created_by_user = None
+
+        if submitted_by:
+            User = get_user_model()
+            created_by_user = (
+                User.objects.filter(username__iexact=submitted_by).first()
+                or User.objects.filter(email__iexact=submitted_by).first()
+            )
 
         accident, created = Accident.objects.update_or_create(
             kobo_submission_id=str(kobo_id),
             defaults={
 
-                # IDENTIFICATION
                 "reference": reference,
                 "title": f"{reference} - Accident",
 
-                # DETAILS ACCIDENT
                 "accident_date": accident_date,
 
                 "accident_time": get_kobo_value(
@@ -1338,14 +1315,6 @@ def kobo_accident_webhook(request):
                     "description",
                 ),
 
-                "impact": get_kobo_value(
-                    data,
-                    "accident_details/impact",
-                    "accident_details/main_impact",
-                    "impact",
-                    "main_impact",
-                ),
-
                 "device_type": get_kobo_value(
                     data,
                     "accident_details/device_type",
@@ -1364,7 +1333,18 @@ def kobo_accident_webhook(request):
                     "device_marked",
                 ),
 
-                # ORGANISATION / REPORTING
+                "report_date": parse_kobo_date(
+                    get_kobo_value(
+                        data,
+                        "reporting/report_date",
+                        "reporting/date_report",
+                        "reporting/date_rapport",
+                        "report_date",
+                        "date_report",
+                        "date_rapport",
+                    )
+                ),
+
                 "org_name": get_kobo_value(
                     data,
                     "reporting/org_name",
@@ -1379,6 +1359,14 @@ def kobo_accident_webhook(request):
                     "reported_by",
                 ),
 
+                "reporting_position": get_kobo_value(
+                    data,
+                    "reporting/position",
+                    "reporting/poste",
+                    "position",
+                    "poste",
+                ),
+
                 "team": get_kobo_value(
                     data,
                     "reporting/team",
@@ -1391,7 +1379,14 @@ def kobo_accident_webhook(request):
                     "funding_source",
                 ),
 
-                # LOCALISATION
+                "country": get_kobo_value(
+                    data,
+                    "location/country",
+                    "location/pays",
+                    "country",
+                    "pays",
+                ),
+
                 "region": region_obj,
                 "cercle": cercle_obj,
                 "commune": commune_obj,
@@ -1412,13 +1407,6 @@ def kobo_accident_webhook(request):
                     data,
                     "location/secure_access",
                     "secure_access",
-                ),
-
-                # SOURCE INFORMATION
-                "source_name": get_kobo_value(
-                    data,
-                    "source_details/source_name",
-                    "source_name",
                 ),
 
                 "source_first_name": get_kobo_value(
@@ -1457,43 +1445,18 @@ def kobo_accident_webhook(request):
                     "source_type",
                 ),
 
-                # SOUMISSIONNAIRE
-                "submitter_email": get_kobo_value(
-                    data,
-                    "_submitted_by",
-                    "submitter/email",
-                    "submitter_email",
-                ),
+                "submitter_username": submitted_by,
+                "created_by": created_by_user,
 
-                "submitter_first_name": get_kobo_value(
-                    data,
-                    "submitter/first_name",
-                    "submitter_first_name",
-                ),
-
-                "submitter_last_name": get_kobo_value(
-                    data,
-                    "submitter/last_name",
-                    "submitter_last_name",
-                ),
-
-                "submitter_phone": get_kobo_value(
-                    data,
-                    "submitter/phone",
-                    "submitter_phone",
-                ),
-
-                "submitter_organization": get_kobo_value(
-                    data,
-                    "submitter/organization",
-                    "submitter_organization",
-                ),
-
-                # KOBO / SYSTEME
                 "source": Accident.SOURCE_KOBO,
                 "raw_payload": data,
                 "status": Accident.STATUS_SUBMITTED,
-                "submitted_at_kobo": parse_datetime(data.get("end")) if data.get("end") else None,
+
+                "submitted_at_kobo": (
+                    parse_datetime(data.get("end"))
+                    if data.get("end")
+                    else None
+                ),
             },
         )
 
