@@ -1,6 +1,7 @@
 ﻿from urllib.parse import urlencode
 from collections import Counter, defaultdict
 import json
+from apps.geo.models import Region, Cercle, Commune
 
 from django import forms
 from django.contrib import messages
@@ -1120,13 +1121,22 @@ def parse_kobo_date(value):
 
 @csrf_exempt
 def kobo_accident_webhook(request):
+
     if request.method != "POST":
-        return JsonResponse({"error": "POST only"}, status=405)
+        return JsonResponse(
+            {"error": "POST only"},
+            status=405
+        )
 
     try:
+
         data = json.loads(request.body)
 
         print("KOBO ACCIDENT DATA:", data)
+
+        # =========================
+        # DATE ACCIDENT
+        # =========================
 
         accident_date_value = get_kobo_value(
             data,
@@ -1151,11 +1161,19 @@ def kobo_accident_webhook(request):
                 status=400,
             )
 
+        # =========================
+        # IDENTIFIANT KOBO
+        # =========================
+
         kobo_id = (
             data.get("_id")
             or data.get("_uuid")
             or data.get("meta/instanceID")
         )
+
+        # =========================
+        # REFERENCE
+        # =========================
 
         reference = get_kobo_value(
             data,
@@ -1167,19 +1185,93 @@ def kobo_accident_webhook(request):
             "1.1.  ID de l'accident",
         ) or f"ACC-{kobo_id}"
 
-        Accident.objects.update_or_create(
-            kobo_submission_id=str(kobo_id),
-            defaults={
-                "reference": reference,
-                "accident_date": accident_date,
-                "source": Accident.SOURCE_KOBO,
-                "raw_payload": data,
-                "status": Accident.STATUS_SUBMITTED,
-            },
+        # =========================
+        # GEOGRAPHIE
+        # =========================
+
+        region_name = get_kobo_value(
+            data,
+            "location/region",
         )
 
-        return JsonResponse({"status": "success"}, status=201)
+        cercle_name = get_kobo_value(
+            data,
+            "location/cercle",
+        )
+
+        commune_name = get_kobo_value(
+            data,
+            "location/commune",
+        )
+
+        region_obj = None
+        cercle_obj = None
+        commune_obj = None
+
+        if region_name:
+            region_obj = Region.objects.filter(
+                name__iexact=region_name
+            ).first()
+
+        if cercle_name:
+            cercle_obj = Cercle.objects.filter(
+                name__iexact=cercle_name
+            ).first()
+
+        if commune_name:
+            commune_obj = Commune.objects.filter(
+                name__iexact=commune_name
+            ).first()
+
+        if not cercle_obj:
+            return JsonResponse(
+                {
+                    "error": "Cercle introuvable ou manquant",
+                    "cercle_recu": cercle_name,
+                    "region_recue": region_name,
+                    "commune_recue": commune_name,
+                },
+                status=400,
+            )
+
+        # =========================
+        # CREATION ACCIDENT
+        # =========================
+
+        Accident.objects.update_or_create(
+
+            kobo_submission_id=str(kobo_id),
+
+            defaults={
+
+                "reference": reference,
+
+                "accident_date": accident_date,
+
+                "region": region_obj,
+
+                "cercle": cercle_obj,
+
+                "commune": commune_obj,
+
+                "source": Accident.SOURCE_KOBO,
+
+                "raw_payload": data,
+
+                "status": Accident.STATUS_SUBMITTED,
+            }
+        )
+
+        return JsonResponse(
+            {"status": "success"},
+            status=201
+        )
 
     except Exception as e:
+
         print("WEBHOOK ERROR:", str(e))
-        return JsonResponse({"error": str(e)}, status=500)
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
