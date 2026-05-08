@@ -1123,20 +1123,12 @@ def parse_kobo_date(value):
 def kobo_accident_webhook(request):
 
     if request.method != "POST":
-        return JsonResponse(
-            {"error": "POST only"},
-            status=405
-        )
+        return JsonResponse({"error": "POST only"}, status=405)
 
     try:
-
         data = json.loads(request.body)
 
         print("KOBO ACCIDENT DATA:", data)
-
-        # =========================
-        # DATE ACCIDENT
-        # =========================
 
         accident_date_value = get_kobo_value(
             data,
@@ -1144,10 +1136,6 @@ def kobo_accident_webhook(request):
             "accident_date",
             "date_accident",
             "date",
-            "1.2. Date de l'accident",
-            "1.2.  Date de l'accident",
-            "g_report/date_accident",
-            "g_accident/date_accident",
         )
 
         accident_date = parse_kobo_date(accident_date_value)
@@ -1161,117 +1149,90 @@ def kobo_accident_webhook(request):
                 status=400,
             )
 
-        # =========================
-        # IDENTIFIANT KOBO
-        # =========================
-
         kobo_id = (
             data.get("_id")
             or data.get("_uuid")
             or data.get("meta/instanceID")
         )
 
-        # =========================
-        # REFERENCE
-        # =========================
-
         reference = get_kobo_value(
             data,
             "reporting/accident_id",
             "reference",
             "accident_id",
-            "g_report/accident_id",
-            "1.1. ID de l'accident",
-            "1.1.  ID de l'accident",
         ) or f"ACC-{kobo_id}"
 
         # =========================
         # GEOGRAPHIE
         # =========================
 
-        region_name = get_kobo_value(
-            data,
-            "location/region",
-        )
-
-        cercle_name = get_kobo_value(
-            data,
-            "location/cercle",
-        )
-
-        commune_name = get_kobo_value(
-            data,
-            "location/commune",
-        )
+        region_code = str(get_kobo_value(data, "location/region") or "").strip()
+        cercle_code = str(get_kobo_value(data, "location/cercle") or "").strip()
+        commune_code = str(get_kobo_value(data, "location/commune") or "").strip()
 
         region_obj = None
         cercle_obj = None
         commune_obj = None
 
-        if region_name:
-           region_obj = Region.objects.filter(
-           Q(code=str(region_name)) | Q(name__iexact=str(region_name))
-            ).first()
+        if region_code:
+            region_obj = (
+                Region.objects.filter(code=region_code).first()
+                or Region.objects.filter(name__iexact=region_code).first()
+            )
 
-        if cercle_name:
-           cercle_obj = Cercle.objects.filter(
-           Q(code=str(cercle_name)) | Q(name__iexact=str(cercle_name))
-            ).first()
-           
-        if commune_name:
-           commune_obj = Commune.objects.filter(
-           Q(code=str(commune_name)) | Q(name__iexact=str(commune_name))
-           ).first()
+        if cercle_code:
+            cercle_obj = (
+                Cercle.objects.filter(code=cercle_code).first()
+                or Cercle.objects.filter(name__iexact=cercle_code).first()
+            )
 
-        if not cercle_obj:
+        if commune_code:
+            commune_obj = (
+                Commune.objects.filter(code=commune_code).first()
+                or Commune.objects.filter(name__iexact=commune_code).first()
+            )
+
+        # Déduire depuis commune
+        if commune_obj:
+            if not cercle_obj:
+                cercle_obj = commune_obj.cercle
+            if not region_obj and commune_obj.cercle:
+                region_obj = commune_obj.cercle.region
+
+        # Déduire depuis cercle
+        if cercle_obj and not region_obj:
+            region_obj = cercle_obj.region
+
+        if not region_obj or not cercle_obj:
             return JsonResponse(
                 {
-                    "error": "Cercle introuvable ou manquant",
-                    "cercle_recu": cercle_name,
-                    "region_recue": region_name,
-                    "commune_recue": commune_name,
+                    "error": "Géographie introuvable ou incomplète",
+                    "region_recue": region_code,
+                    "cercle_recu": cercle_code,
+                    "commune_recue": commune_code,
+                    "region_trouvee": str(region_obj) if region_obj else None,
+                    "cercle_trouve": str(cercle_obj) if cercle_obj else None,
+                    "commune_trouvee": str(commune_obj) if commune_obj else None,
                 },
                 status=400,
             )
 
-        # =========================
-        # CREATION ACCIDENT
-        # =========================
-
         Accident.objects.update_or_create(
-
             kobo_submission_id=str(kobo_id),
-
             defaults={
-
                 "reference": reference,
-
                 "accident_date": accident_date,
-
                 "region": region_obj,
-
                 "cercle": cercle_obj,
-
                 "commune": commune_obj,
-
                 "source": Accident.SOURCE_KOBO,
-
                 "raw_payload": data,
-
                 "status": Accident.STATUS_SUBMITTED,
-            }
+            },
         )
 
-        return JsonResponse(
-            {"status": "success"},
-            status=201
-        )
+        return JsonResponse({"status": "success"}, status=201)
 
     except Exception as e:
-
         print("WEBHOOK ERROR:", str(e))
-
-        return JsonResponse(
-            {"error": str(e)},
-            status=500
-        )
+        return JsonResponse({"error": str(e)}, status=500)
