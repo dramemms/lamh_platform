@@ -1359,13 +1359,7 @@ def kobo_accident_webhook(request):
                     "reported_by",
                 ),
 
-                "reporting_position": get_kobo_value(
-                    data,
-                    "reporting/position",
-                    "reporting/poste",
-                    "position",
-                    "poste",
-                ),
+                
 
                 "team": get_kobo_value(
                     data,
