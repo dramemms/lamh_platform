@@ -1128,7 +1128,14 @@ def kobo_accident_webhook(request):
     try:
         data = json.loads(request.body)
 
-        print("KOBO ACCIDENT DATA:", data)
+        print("===== KOBO ACCIDENT DATA =====")
+        print(data)
+        print("===== KOBO KEYS =====")
+        print(list(data.keys()))
+
+        # =========================
+        # DATE ACCIDENT
+        # =========================
 
         accident_date_value = get_kobo_value(
             data,
@@ -1149,6 +1156,10 @@ def kobo_accident_webhook(request):
                 status=400,
             )
 
+        # =========================
+        # IDENTIFIANT KOBO
+        # =========================
+
         kobo_id = (
             data.get("_id")
             or data.get("_uuid")
@@ -1158,17 +1169,37 @@ def kobo_accident_webhook(request):
         reference = get_kobo_value(
             data,
             "reporting/accident_id",
-            "reference",
             "accident_id",
-        ) or f"ACC-{kobo_id}"
+            "reference",
+        ) or f"ACC-{timezone.now().strftime('%Y%m%d')}-{str(kobo_id)[-6:]}"
 
         # =========================
         # GEOGRAPHIE
         # =========================
 
-        region_code = str(get_kobo_value(data, "location/region") or "").strip()
-        cercle_code = str(get_kobo_value(data, "location/cercle") or "").strip()
-        commune_code = str(get_kobo_value(data, "location/commune") or "").strip()
+        region_code = str(
+            get_kobo_value(
+                data,
+                "location/region",
+                "region",
+            ) or ""
+        ).strip()
+
+        cercle_code = str(
+            get_kobo_value(
+                data,
+                "location/cercle",
+                "cercle",
+            ) or ""
+        ).strip()
+
+        commune_code = str(
+            get_kobo_value(
+                data,
+                "location/commune",
+                "commune",
+            ) or ""
+        ).strip()
 
         region_obj = None
         cercle_obj = None
@@ -1192,14 +1223,13 @@ def kobo_accident_webhook(request):
                 or Commune.objects.filter(name__iexact=commune_code).first()
             )
 
-        # Déduire depuis commune
         if commune_obj:
             if not cercle_obj:
                 cercle_obj = commune_obj.cercle
+
             if not region_obj and commune_obj.cercle:
                 region_obj = commune_obj.cercle.region
 
-        # Déduire depuis cercle
         if cercle_obj and not region_obj:
             region_obj = cercle_obj.region
 
@@ -1217,224 +1247,265 @@ def kobo_accident_webhook(request):
                 status=400,
             )
 
-        Accident.objects.update_or_create(
-    kobo_submission_id=str(kobo_id),
-
-    defaults={
-
         # =========================
-        # IDENTIFICATION
+        # COORDONNEES
         # =========================
 
-        "reference": reference,
-        "title": f"{reference} - Accident",
-
-        # =========================
-        # ACCIDENT
-        # =========================
-
-        "accident_date": accident_date,
-
-        "accident_time": get_kobo_value(
+        latitude = get_kobo_value(
             data,
-            "g_accident/accident_time",
-            "accident_time",
-        ),
-
-        "category": get_kobo_value(
-            data,
-            "g_accident/type_accident",
-            "g_accident/category",
-            "type_accident",
-        ),
-
-        "description": get_kobo_value(
-            data,
-            "g_accident/description",
-            "description",
-        ),
-
-        "activity_at_time": get_kobo_value(
-            data,
-            "g_accident/activity_at_time",
-            "activity_at_time",
-        ),
-
-        "impact": get_kobo_value(
-            data,
-            "g_accident/impact",
-            "impact",
-        ),
-
-        "device_type": get_kobo_value(
-            data,
-            "g_accident/device_type",
-            "device_type",
-        ),
-
-        "device_status": get_kobo_value(
-            data,
-            "g_accident/device_status",
-            "device_status",
-        ),
-
-        "device_marked": get_kobo_value(
-            data,
-            "g_accident/device_marked",
-            "device_marked",
-        ),
-
-        "number_victims": get_kobo_value(
-            data,
-            "g_accident/number_victims",
-            "number_victims",
-        ),
-
-        "other_damage": get_kobo_value(
-            data,
-            "g_accident/other_damage",
-            "other_damage",
-        ),
-
-        # =========================
-        # ORGANISATION
-        # =========================
-
-        "org_name": get_kobo_value(
-            data,
-            "g_reporting/organisation",
-            "organisation",
-        ),
-
-        "reported_by": get_kobo_value(
-            data,
-            "g_reporting/reported_by",
-            "reported_by",
-        ),
-
-        "team": get_kobo_value(
-            data,
-            "g_reporting/team",
-            "team",
-        ),
-
-        "funding_source": get_kobo_value(
-            data,
-            "g_reporting/funding_source",
-            "funding_source",
-        ),
-
-        # =========================
-        # LOCALISATION
-        # =========================
-
-        "region": region_obj,
-        "cercle": cercle_obj,
-        "commune": commune_obj,
-
-        "locality": get_kobo_value(
-            data,
-            "g_location/locality",
-            "locality",
-        ),
-
-        "latitude": get_kobo_value(
-            data,
-            "g_location/latitude",
+            "location/latitude",
             "latitude",
-        ),
+        )
 
-        "longitude": get_kobo_value(
+        longitude = get_kobo_value(
             data,
-            "g_location/longitude",
+            "location/longitude",
             "longitude",
-        ),
+        )
 
-        "secure_access": get_kobo_value(
+        gps = get_kobo_value(
             data,
-            "g_location/secure_access",
-            "secure_access",
-        ),
+            "location/location_gps",
+            "location/location",
+            "location_gps",
+            "gps",
+        )
+
+        if gps and (not latitude or not longitude):
+            try:
+                parts = str(gps).split()
+                latitude = parts[0]
+                longitude = parts[1]
+            except Exception:
+                pass
 
         # =========================
-        # SOURCE INFO
+        # TYPE ACCIDENT
         # =========================
 
-        "source_name": get_kobo_value(
+        category = get_kobo_value(
             data,
-            "g_source/source_name",
-            "source_name",
-        ),
-
-        "source_contact": get_kobo_value(
-            data,
-            "g_source/source_contact",
-            "source_contact",
-        ),
-
-        "source_gender": get_kobo_value(
-            data,
-            "g_source/source_gender",
-            "source_gender",
-        ),
-
-        "source_age": get_kobo_value(
-            data,
-            "g_source/source_age",
-            "source_age",
-        ),
-
-        "source_type": get_kobo_value(
-            data,
-            "g_source/source_type",
-            "source_type",
-        ),
+            "accident_details/type_accident",
+            "type_accident",
+            "category",
+            "accident_type",
+        ) or "Autre"
 
         # =========================
-        # SUBMITTER
+        # SAUVEGARDE
         # =========================
 
-        "submitter_email": get_kobo_value(
-            data,
-            "g_submitter/email",
-            "email",
-        ),
+        accident, created = Accident.objects.update_or_create(
+            kobo_submission_id=str(kobo_id),
+            defaults={
 
-        "submitter_first_name": get_kobo_value(
-            data,
-            "g_submitter/first_name",
-            "first_name",
-        ),
+                # IDENTIFICATION
+                "reference": reference,
+                "title": f"{reference} - Accident",
 
-        "submitter_last_name": get_kobo_value(
-            data,
-            "g_submitter/last_name",
-            "last_name",
-        ),
+                # DETAILS ACCIDENT
+                "accident_date": accident_date,
 
-        "submitter_phone": get_kobo_value(
-            data,
-            "g_submitter/phone",
-            "phone",
-        ),
+                "accident_time": get_kobo_value(
+                    data,
+                    "accident_details/accident_time",
+                    "accident_time",
+                ),
 
-        "submitter_organization": get_kobo_value(
-            data,
-            "g_submitter/organization",
-            "organization",
-        ),
+                "category": category,
 
-        # =========================
-        # SYSTEM
-        # =========================
+                "number_victims": get_kobo_value(
+                    data,
+                    "accident_details/number_victims",
+                    "number_victims",
+                ),
 
-        "source": Accident.SOURCE_KOBO,
-        "raw_payload": data,
-        "status": Accident.STATUS_SUBMITTED,
-    },
-)
+                "other_damage": get_kobo_value(
+                    data,
+                    "accident_details/other_damage",
+                    "other_damage",
+                ),
 
-        return JsonResponse({"status": "success"}, status=201)
+                "activity_at_time": get_kobo_value(
+                    data,
+                    "accident_details/activity_at_time",
+                    "activity_at_time",
+                ),
+
+                "description": get_kobo_value(
+                    data,
+                    "accident_details/description",
+                    "description",
+                ),
+
+                "impact": get_kobo_value(
+                    data,
+                    "accident_details/impact",
+                    "accident_details/main_impact",
+                    "impact",
+                    "main_impact",
+                ),
+
+                "device_type": get_kobo_value(
+                    data,
+                    "accident_details/device_type",
+                    "device_type",
+                ),
+
+                "device_status": get_kobo_value(
+                    data,
+                    "accident_details/device_status",
+                    "device_status",
+                ),
+
+                "device_marked": get_kobo_value(
+                    data,
+                    "accident_details/device_marked",
+                    "device_marked",
+                ),
+
+                # ORGANISATION / REPORTING
+                "org_name": get_kobo_value(
+                    data,
+                    "reporting/org_name",
+                    "reporting/organisation",
+                    "org_name",
+                    "organisation",
+                ),
+
+                "reported_by": get_kobo_value(
+                    data,
+                    "reporting/reported_by",
+                    "reported_by",
+                ),
+
+                "team": get_kobo_value(
+                    data,
+                    "reporting/team",
+                    "team",
+                ),
+
+                "funding_source": get_kobo_value(
+                    data,
+                    "reporting/funding_source",
+                    "funding_source",
+                ),
+
+                # LOCALISATION
+                "region": region_obj,
+                "cercle": cercle_obj,
+                "commune": commune_obj,
+
+                "locality": get_kobo_value(
+                    data,
+                    "location/locality",
+                    "location/village",
+                    "location/village_quartier",
+                    "locality",
+                    "village",
+                ),
+
+                "latitude": latitude,
+                "longitude": longitude,
+
+                "secure_access": get_kobo_value(
+                    data,
+                    "location/secure_access",
+                    "secure_access",
+                ),
+
+                # SOURCE INFORMATION
+                "source_name": get_kobo_value(
+                    data,
+                    "source_details/source_name",
+                    "source_name",
+                ),
+
+                "source_first_name": get_kobo_value(
+                    data,
+                    "source_details/source_first_name",
+                    "source_first_name",
+                ),
+
+                "source_last_name": get_kobo_value(
+                    data,
+                    "source_details/source_last_name",
+                    "source_last_name",
+                ),
+
+                "source_contact": get_kobo_value(
+                    data,
+                    "source_details/source_contact",
+                    "source_contact",
+                ),
+
+                "source_gender": get_kobo_value(
+                    data,
+                    "source_details/source_gender",
+                    "source_gender",
+                ),
+
+                "source_age": get_kobo_value(
+                    data,
+                    "source_details/source_age",
+                    "source_age",
+                ),
+
+                "source_type": get_kobo_value(
+                    data,
+                    "source_details/source_type",
+                    "source_type",
+                ),
+
+                # SOUMISSIONNAIRE
+                "submitter_email": get_kobo_value(
+                    data,
+                    "_submitted_by",
+                    "submitter/email",
+                    "submitter_email",
+                ),
+
+                "submitter_first_name": get_kobo_value(
+                    data,
+                    "submitter/first_name",
+                    "submitter_first_name",
+                ),
+
+                "submitter_last_name": get_kobo_value(
+                    data,
+                    "submitter/last_name",
+                    "submitter_last_name",
+                ),
+
+                "submitter_phone": get_kobo_value(
+                    data,
+                    "submitter/phone",
+                    "submitter_phone",
+                ),
+
+                "submitter_organization": get_kobo_value(
+                    data,
+                    "submitter/organization",
+                    "submitter_organization",
+                ),
+
+                # KOBO / SYSTEME
+                "source": Accident.SOURCE_KOBO,
+                "raw_payload": data,
+                "status": Accident.STATUS_SUBMITTED,
+                "submitted_at_kobo": parse_datetime(data.get("end")) if data.get("end") else None,
+            },
+        )
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "created": created,
+                "accident_id": accident.id,
+                "reference": accident.reference,
+            },
+            status=201,
+        )
 
     except Exception as e:
         print("WEBHOOK ERROR:", str(e))
