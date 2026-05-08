@@ -31,4 +31,13 @@ urlpatterns = [
     # =========================
     path("<int:pk>/transition/<str:action>/", views.accident_transition, name="accident_transition"),
     path("<int:pk>/workflow/<str:action>/", views.accident_reject_or_return, name="accident_workflow_form"),
+
+    urlpatterns += [
+    path(
+        "api/kobo/webhook/",
+        views.kobo_accident_webhook,
+        name="kobo_accident_webhook",
+    ),
+]
+
 ]

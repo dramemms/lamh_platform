@@ -11,6 +11,12 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import Accident
+
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 
@@ -1100,3 +1106,38 @@ def export_accident_dashboard_pdf(request):
     )
 
     return response
+
+@csrf_exempt
+def kobo_accident_webhook(request):
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "POST only"},
+            status=405
+        )
+
+    try:
+
+        data = json.loads(request.body)
+
+        print("KOBO DATA:", data)
+
+        Accident.objects.create(
+            reference=data.get("reference", ""),
+            source=Accident.SOURCE_KOBO,
+            raw_payload=data,
+        )
+
+        return JsonResponse(
+            {"status": "success"},
+            status=201
+        )
+
+    except Exception as e:
+
+        print("WEBHOOK ERROR:", str(e))
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
