@@ -8,25 +8,16 @@ from django.db.models import Count, Sum
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-
-
-from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
 from django.views.decorators.csrf import csrf_exempt
-
-from .models import Accident
 
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
-
-from django.template.loader import render_to_string
-from django.utils import timezone
 from weasyprint import HTML, CSS
-
-from apps.incidents.models import Accident
-from apps.victims.models import Victim
-from apps.eree.models import EREESession
 
 from apps.core.permissions import (
     can_approve,
@@ -34,8 +25,12 @@ from apps.core.permissions import (
     can_program_validate,
     can_tech_validate,
 )
+from apps.eree.models import EREESession
+from apps.victims.models import Victim
+
 from .forms import AccidentEditForm
 from .models import Accident, AccidentChangeLog
+
 from apps.notifications.services import (
     notify_accident_submitted,
     notify_accident_tech_validated,
@@ -196,13 +191,13 @@ def accident_detail(request, pk):
     accident = get_accident_or_404(request.user, pk, with_logs=True)
 
     params = {
-    "d[accident_id]": accident.reference or "",
-    "d[accident_date]": (
-        accident.accident_date.strftime("%Y-%m-%d")
-        if accident.accident_date
-        else ""
-    ),
-}
+        "d[accident_id]": accident.reference or "",
+        "d[accident_date]": (
+            accident.accident_date.strftime("%Y-%m-%d")
+            if accident.accident_date
+            else ""
+        ),
+    }
 
     kobo_victim_prefill_url = f"{KOBO_VICTIM_FORM_URL}?{urlencode(params)}"
 
@@ -316,7 +311,6 @@ def accident_reject_or_return(request, pk, action):
                     },
                 )
 
-            # Retour technique vers le soumissionnaire pour correction
             if action == "tech_reject":
                 if not can_tech_validate(request.user):
                     raise ValidationError("Action non autorisée.")
@@ -336,7 +330,6 @@ def accident_reject_or_return(request, pk, action):
                 )
                 return redirect("accident_detail", pk=pk)
 
-            # Retour admin vers la validation technique
             if action == "program_reject" and accident.status == Accident.STATUS_PROGRAM_VALIDATED:
                 if not can_approve(request.user):
                     raise ValidationError("Action non autorisée.")
@@ -356,7 +349,6 @@ def accident_reject_or_return(request, pk, action):
                 )
                 return redirect("accident_detail", pk=pk)
 
-            # Retour Project Manager vers le soumissionnaire pour correction
             if action == "program_reject" and accident.status == Accident.STATUS_TECH_VALIDATED:
                 if not can_program_validate(request.user):
                     raise ValidationError("Action non autorisée.")
@@ -700,7 +692,6 @@ def export_accidents_excel(request):
     return response
 
 
-
 def accident_dashboard(request):
     accidents = get_user_scoped_queryset(request.user).filter(
         status=Accident.STATUS_APPROVED
@@ -998,6 +989,7 @@ def accident_dashboard(request):
 
     return render(request, "incidents/accident_dashboard.html", context)
 
+
 def rate(part, total):
     if not total:
         return 0
@@ -1020,23 +1012,18 @@ def export_accident_dashboard_pdf(request):
 
     context = {
         "generated_at": timezone.now(),
-
         "total_records": accidents_count + victims_count + eree_count,
-
         "accidents_count": accidents_count,
         "accidents_approved": accidents_approved,
         "accidents_pending": accidents_pending,
         "accidents_approval_rate": rate(accidents_approved, accidents_count),
-
         "victims_count": victims_count,
         "victims_approved": victims_approved,
         "victims_pending": victims_pending,
         "victims_approval_rate": rate(victims_approved, victims_count),
-
         "eree_count": eree_count,
         "eree_approved": eree_approved,
         "eree_pending": eree_pending,
-
         "accidents_by_status": (
             Accident.objects.values("status")
             .annotate(total=Count("id"))
@@ -1047,7 +1034,6 @@ def export_accident_dashboard_pdf(request):
             .annotate(total=Count("id"))
             .order_by("-total")[:10]
         ),
-
         "victims_by_status": (
             Victim.objects.values("status")
             .annotate(total=Count("id"))
@@ -1063,7 +1049,6 @@ def export_accident_dashboard_pdf(request):
             .annotate(total=Count("id"))
             .order_by("-total")
         ),
-
         "eree_by_status": (
             EREESession.objects.values("session_status")
             .annotate(total=Count("id"))
@@ -1096,48 +1081,103 @@ def export_accident_dashboard_pdf(request):
     HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(
         response,
         stylesheets=[
-            CSS(string="""
+            CSS(
+                string="""
                 @page {
                     size: A4 landscape;
                     margin: 1.2cm;
                 }
-            """)
+                """
+            )
         ],
     )
 
     return response
 
+
+def get_kobo_value(data, *keys):
+    for key in keys:
+        value = data.get(key)
+        if value not in [None, ""]:
+            return value
+    return None
+
+
+def parse_kobo_date(value):
+    if not value:
+        return None
+
+    dt = parse_datetime(value)
+    if dt:
+        return dt.date()
+
+    d = parse_date(value)
+    if d:
+        return d
+
+    return None
+
+
 @csrf_exempt
 def kobo_accident_webhook(request):
-
     if request.method != "POST":
-        return JsonResponse(
-            {"error": "POST only"},
-            status=405
-        )
+        return JsonResponse({"error": "POST only"}, status=405)
 
     try:
-
         data = json.loads(request.body)
 
-        print("KOBO DATA:", data)
+        print("KOBO ACCIDENT DATA:", data)
 
-        Accident.objects.create(
-            reference=data.get("reference", ""),
-            source=Accident.SOURCE_KOBO,
-            raw_payload=data,
+        accident_date_value = get_kobo_value(
+            data,
+            "accident_date",
+            "date_accident",
+            "date",
+            "1.2. Date de l'accident",
+            "1.2.  Date de l'accident",
+            "g_report/date_accident",
+            "g_accident/date_accident",
         )
 
-        return JsonResponse(
-            {"status": "success"},
-            status=201
+        accident_date = parse_kobo_date(accident_date_value)
+
+        if not accident_date:
+            return JsonResponse(
+                {
+                    "error": "Champ obligatoire manquant : accident_date",
+                    "received_keys": list(data.keys()),
+                },
+                status=400,
+            )
+
+        kobo_id = (
+            data.get("_id")
+            or data.get("_uuid")
+            or data.get("meta/instanceID")
         )
+
+        reference = get_kobo_value(
+            data,
+            "reference",
+            "accident_id",
+            "g_report/accident_id",
+            "1.1. ID de l'accident",
+            "1.1.  ID de l'accident",
+        ) or f"ACC-{kobo_id}"
+
+        Accident.objects.update_or_create(
+            kobo_submission_id=str(kobo_id),
+            defaults={
+                "reference": reference,
+                "accident_date": accident_date,
+                "source": Accident.SOURCE_KOBO,
+                "raw_payload": data,
+                "status": Accident.STATUS_SUBMITTED,
+            },
+        )
+
+        return JsonResponse({"status": "success"}, status=201)
 
     except Exception as e:
-
         print("WEBHOOK ERROR:", str(e))
-
-        return JsonResponse(
-            {"error": str(e)},
-            status=500
-        )
+        return JsonResponse({"error": str(e)}, status=500)
