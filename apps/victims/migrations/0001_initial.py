@@ -36,7 +36,12 @@ class Migration(migrations.Migration):
                 ('submitter_phone', models.CharField(blank=True, max_length=50, null=True, verbose_name='Téléphone du soumissionnaire')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Créé le')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Mis à jour le')),
-                ('incident', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='victims', to='incidents.incident', verbose_name='Incident')),
+                ('accident', models.ForeignKey(
+    on_delete=django.db.models.deletion.CASCADE,
+    related_name='victims',
+    to='incidents.accident',
+    verbose_name='Accident'
+)),
             ],
             options={
                 'verbose_name': 'Victime',

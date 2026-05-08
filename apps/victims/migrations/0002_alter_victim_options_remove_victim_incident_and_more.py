@@ -12,11 +12,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name="victim",
-            old_name="incident",
-            new_name="accident",
-        ),
+       
         migrations.AlterField(
             model_name="victim",
             name="activity_at_time",
