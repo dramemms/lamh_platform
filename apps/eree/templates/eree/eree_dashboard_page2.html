@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard EREE - Page 2{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+<style>
+.page2-wrap {
+  background: #eef1f4;
+  padding: 14px 18px;
+  height: auto;
+}
+
+.page2-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.page2-header h1 {
+  font-size: 30px;
+  font-weight: 900;
+  color: #0b1f3a;
+  margin: 0;
+}
+
+.page2-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  height: auto;
+}
+
+.filter-panel {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  padding: 14px;
+  min-height: 620px;
+}
+
+.filter-logo img {
+  max-width: 130px;
+  display: block;
+  margin: 0 auto 26px;
+}
+
+.filter-group {
+  margin-bottom: 18px;
+}
+
+.filter-group label {
+  display: block;
+  font-weight: 900;
+  color: #a8323d;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.filter-group select {
+  width: 100%;
+  height: 32px;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 4px;
+}
+
+.reset-btn {
+  display: block;
+  background: #f3f3ef;
+  text-align: center;
+  padding: 10px;
+  font-weight: 900;
+  color: #555;
+  text-decoration: none;
+}
+
+.page2-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-btn,
+.export-image-btn {
+  background: #a8323d;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+}
+
+.export-image-btn {
+  background: #198754;
+}
+
+.page-btn:hover {
+  background: #7b1f28;
+  color: white;
+}
+
+.export-image-btn:hover {
+  background: #146c43;
+  color: white;
+}
+
+.page2-main {
+  width: 100%;
+}
+
+.page2-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.page2-kpi {
+  background: #fff;
+  height: 100px;
+  display: grid;
+  grid-template-columns: 64px 1fr 62px;
+  align-items: center;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+
+.page2-kpi img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.kpi-label {
+  text-align: center;
+  font-size: 15px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.kpi-number {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 900;
+  color: #d96373;
+  line-height: 1;
+}
+
+.kpi-percent {
+  text-align: right;
+  font-size: 20px;
+  font-weight: 900;
+  color: #111;
+  white-space: nowrap;
+}
+
+.page2-card {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.dashboard-analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.08fr;
+  gap: 12px;
+}
+
+.analysis-left {
+  display: grid;
+  grid-template-rows: 250px auto;
+  gap: 12px;
+}
+
+.funding-card {
+  height: 250px;
+  padding: 10px 14px;
+}
+
+.funding-card canvas {
+  width: 100% !important;
+  height: 200px !important;
+}
+
+.small-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.small-kpi {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  height: 130px;
+}
+
+.small-kpi img {
+  max-height: 95px;
+  max-width: 82px;
+  object-fit: contain;
+}
+
+.small-kpi-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.small-kpi-value {
+  font-size: 30px;
+  font-weight: 900;
+  color: #d96373;
+}
+
+.map-card {
+  height: 536px;
+  padding: 10px;
+}
+
+#ereeMap {
+  width: 100%;
+  height: 480px;
+  border-radius: 6px;
+}
+
+.card-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+@media(max-width: 1200px) {
+  .page2-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-panel {
+    min-height: auto;
+  }
+
+  .page2-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-card {
+    height: 420px;
+  }
+
+  #ereeMap {
+    height: 360px;
+  }
+}
+
+@media(max-width: 700px) {
+  .page2-kpis,
+  .small-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<div class="page2-wrap" id="dashboard-content">
+
+  <div class="page2-header">
+    <h1>Dashboard EREE LAMH - DCA Mali</h1>
+
+    <div class="page2-actions">
+      <button type="button" onclick="exportEreePage2Image()" class="export-image-btn">
+        Exporter le dashboard en image
+      </button>
+
+      <a href="{% url 'eree_dashboard' %}" class="page-btn">← Page 1</a>
+    </div>
+  </div>
+
+  <div class="page2-grid">
+
+    <aside class="filter-panel">
+      <div class="filter-logo">
+        <img src="{% static 'img/dca_logo.png' %}" alt="DCA">
+      </div>
+
+      <form method="get">
+
+        <div class="filter-group">
+          <label>Organisation</label>
+          <select name="organisation" onchange="this.form.submit()">
+            <option value="">Tout</option>
+            {% for item in organisations %}
+              <option value="{{ item }}" {% if selected_organisation == item %}selected{% endif %}>
+                {{ item }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Source de financement</label>
+          <select name="funding_source" onchange="this.form.submit()">
+            <option value="">Tout</option>
+            {% for item in funding_sources %}
+              <option value="{{ item }}" {% if selected_funding_source == item %}selected{% endif %}>
+                {{ item }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Type de session</label>
+          <select name="session_type" onchange="this.form.submit()">
+            <option value="">Tout</option>
+            {% for item in session_types %}
+              <option value="{{ item }}" {% if selected_session_type == item %}selected{% endif %}>
+                {{ item }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Région</label>
+          <select name="region" onchange="this.form.submit()">
+            <option value="">Tout</option>
+            {% for item in regions %}
+              <option value="{{ item.region_id }}" {% if selected_region == item.region_id|stringformat:"s" %}selected{% endif %}>
+                {{ item.region__name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Cercle</label>
+          <select name="cercle" onchange="this.form.submit()">
+            <option value="">Tout</option>
+            {% for item in cercles %}
+              <option value="{{ item.cercle_id }}" {% if selected_cercle == item.cercle_id|stringformat:"s" %}selected{% endif %}>
+                {{ item.cercle__name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Commune</label>
+          <select name="commune" onchange="this.form.submit()">
+            <option value="">Tout</option>
+            {% for item in communes %}
+              <option value="{{ item.commune_id }}" {% if selected_commune == item.commune_id|stringformat:"s" %}selected{% endif %}>
+                {{ item.commune__name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Période</label>
+          <select name="periode" onchange="this.form.submit()">
+            <option value="">Tout</option>
+            {% for item in periodes %}
+              <option value="{{ item.year }}" {% if selected_periode == item.year|stringformat:"s" %}selected{% endif %}>
+                {{ item.year }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <a href="{% url 'eree_dashboard_page2' %}" class="reset-btn">
+          Reset
+        </a>
+
+      </form>
+    </aside>
+
+    <main class="page2-main">
+
+      <div class="page2-kpis">
+
+        <section class="page2-kpi">
+          <img src="{% static 'img/eree.png' %}" alt="Sessions EREE">
+          <div>
+            <div class="kpi-label">Sessions EREE</div>
+            <div class="kpi-number">{{ total_sessions }}</div>
+          </div>
+          <div></div>
+        </section>
+
+        <section class="page2-kpi">
+          <img src="{% static 'img/beneficiaires.png' %}" alt="Bénéficiaires">
+          <div>
+            <div class="kpi-label">Bénéficiaires</div>
+            <div class="kpi-number">{{ total_beneficiaries }}</div>
+          </div>
+          <div></div>
+        </section>
+
+        <section class="page2-kpi">
+          <img src="{% static 'img/homme.png' %}" alt="Masculin">
+          <div>
+            <div class="kpi-label">Masculin</div>
+            <div class="kpi-number">{{ total_male }}</div>
+          </div>
+          <div class="kpi-percent">{{ male_pct }}%</div>
+        </section>
+
+        <section class="page2-kpi">
+          <img src="{% static 'img/femme.png' %}" alt="Féminin">
+          <div>
+            <div class="kpi-label">Féminin</div>
+            <div class="kpi-number">{{ total_female }}</div>
+          </div>
+          <div class="kpi-percent">{{ female_pct }}%</div>
+        </section>
+
+      </div>
+
+      <div class="dashboard-analysis-grid">
+
+        <div class="analysis-left">
+
+          <section class="page2-card funding-card">
+            <div class="card-title">Nombre de sessions EREE par source de financement</div>
+            <canvas id="fundingChart"></canvas>
+          </section>
+
+          <div class="small-kpi-grid">
+
+            <section class="page2-card small-kpi">
+              <img src="{% static 'img/garçons.png' %}" alt="Garçons">
+              <div>
+                <div class="small-kpi-title">Garçons</div>
+                <div class="small-kpi-value">{{ total_boys }}</div>
+              </div>
+            </section>
+
+            <section class="page2-card small-kpi">
+              <img src="{% static 'img/filles.png' %}" alt="Filles">
+              <div>
+                <div class="small-kpi-title">Filles</div>
+                <div class="small-kpi-value">{{ total_girls }}</div>
+              </div>
+            </section>
+
+            <section class="page2-card small-kpi">
+              <img src="{% static 'img/homme.png' %}" alt="Hommes">
+              <div>
+                <div class="small-kpi-title">Hommes</div>
+                <div class="small-kpi-value">{{ total_men }}</div>
+              </div>
+            </section>
+
+            <section class="page2-card small-kpi">
+              <img src="{% static 'img/femme.png' %}" alt="Femmes">
+              <div>
+                <div class="small-kpi-title">Femmes</div>
+                <div class="small-kpi-value">{{ total_women }}</div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+        <section class="page2-card map-card">
+          <div class="card-title">Nombre de sessions par cercle</div>
+          <div id="ereeMap"></div>
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const fundingLabels = {{ funding_labels_json|safe }};
+const fundingValues = {{ funding_values_json|safe }};
+const mapLabels = {{ map_cercle_labels_json|safe }};
+const mapValues = {{ map_cercle_values_json|safe }};
+
+new Chart(document.getElementById("fundingChart"), {
+  type: "bar",
+  data: {
+    labels: fundingLabels,
+    datasets: [{
+      data: fundingValues,
+      backgroundColor: "#a8323d",
+      borderRadius: 4,
+      barThickness: 32
+    }]
+  },
+  options: {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        left: 8,
+        right: 8,
+        top: 2,
+        bottom: 2
+      }
+    },
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        grid: { color: "#e5e7eb" }
+      },
+      y: {
+        grid: { display: false }
+      }
+    }
+  }
+});
+
+const cercleCoords = {
+  "bamako": [12.6392, -8.0029],
+  "kayes": [14.4469, -11.4445],
+  "kita": [13.0349, -9.4895],
+  "nioro": [15.2293, -9.5928],
+  "nioro du sahel": [15.2293, -9.5928],
+  "koulikoro": [12.8627, -7.5599],
+  "kati": [12.7441, -8.0726],
+  "segou": [13.4317, -6.2157],
+  "ségou": [13.4317, -6.2157],
+  "san": [13.3034, -4.8956],
+  "mopti": [14.4843, -4.1829],
+  "djenné": [13.9061, -4.5533],
+  "djenne": [13.9061, -4.5533],
+  "bandiagara": [14.3500, -3.6100],
+  "bankass": [14.0710, -3.5150],
+  "koro": [14.0640, -3.0790],
+  "douentza": [15.0016, -2.9498],
+  "ténenkou": [14.4572, -4.9169],
+  "tenenkou": [14.4572, -4.9169],
+  "tombouctou": [16.7735, -3.0074],
+  "gao": [16.2717, -0.0447],
+  "ménaka": [15.9182, 2.4022],
+  "menaka": [15.9182, 2.4022],
+  "kidal": [18.4411, 1.4078],
+  "taoudénit": [22.6764, -3.9789],
+  "taoudenit": [22.6764, -3.9789],
+  "sikasso": [11.3176, -5.6665],
+  "bougouni": [11.4177, -7.4833],
+  "koutiala": [12.3917, -5.4642]
+};
+
+const ereeMap = L.map("ereeMap", {
+  zoomControl: true,
+  scrollWheelZoom: true
+}).setView([14.8, -4.0], 6);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 18,
+  attribution: "&copy; OpenStreetMap"
+}).addTo(ereeMap);
+
+const bounds = [];
+
+mapLabels.forEach((label, index) => {
+  if (!label) return;
+
+  const cleanLabel = String(label).trim().toLowerCase();
+  const coords = cercleCoords[cleanLabel];
+
+  if (!coords) {
+    console.warn("Cercle sans coordonnées :", label);
+    return;
+  }
+
+  const value = Number(mapValues[index] || 0);
+  const radius = Math.max(8, Math.min(32, value * 6));
+
+  L.circleMarker(coords, {
+    radius: radius,
+    color: "#5b36a3",
+    weight: 2,
+    fillColor: "#8b5cf6",
+    fillOpacity: 0.55
+  })
+  .addTo(ereeMap)
+  .bindPopup(`<strong>${label}</strong><br> Total session(s) EREE ${value}`);
+
+  bounds.push(coords);
+});
+
+if (bounds.length > 0) {
+  ereeMap.fitBounds(bounds, {
+    padding: [35, 35],
+    maxZoom: 7
+  });
+}
+
+setTimeout(function () {
+  ereeMap.invalidateSize();
+}, 300);
+
+function exportEreePage2Image() {
+  const dashboard = document.getElementById("dashboard-content");
+  const actions = document.querySelector(".page2-actions");
+
+  if (actions) {
+    actions.style.display = "none";
+  }
+
+  if (typeof ereeMap !== "undefined") {
+    ereeMap.invalidateSize();
+  }
+
+  setTimeout(function(){
+    html2canvas(dashboard, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      windowWidth: document.body.scrollWidth,
+      windowHeight: document.body.scrollHeight,
+      scrollY: -window.scrollY
+    }).then(function(canvas) {
+      const link = document.createElement("a");
+      link.download = "dashboard_eree_page2_lamh.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      if (actions) {
+        actions.style.display = "flex";
+      }
+    }).catch(function(error) {
+      if (actions) {
+        actions.style.display = "flex";
+      }
+      console.error("Erreur export image :", error);
+      alert("Erreur lors de l'export image.");
+    });
+  }, 500);
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - LAMH Platform{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+                <h1>LAMH Platform</h1>
+
+        <p class="hero-text">
+            Plateforme de gestion, de validation, de suivi opérationnel
+            et de reporting pour DCA Mali / DanChurchAid Mali.
+        </p>
+
+        {% if user.is_authenticated %}
+        <div class="hero-actions">
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">
+                Accéder au dashboard
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-header">
+        <h2>Modules clés</h2>
+        <p>Une base évolutive pour les besoins terrain, validation et pilotage.</p>
+    </div>
+
+    <div class="card-grid">
+        <article class="card">
+            <h3>Soumissions</h3>
+            <p>Collecte et centralisation des données opérationnelles.</p>
+        </article>
+
+        <article class="card">
+            <h3>Validation</h3>
+            <p>Workflow de revue, approbation et contrôle qualité.</p>
+        </article>
+
+        <article class="card">
+            <h3>Accidents &amp; victimes</h3>
+            <p>Suivi structuré des cas et des informations liées.</p>
+        </article>
+
+        <article class="card">
+            <h3>Éducation aux risques liés aux engins explosifs (EREE)</h3>
+            <p>Suivi des sessions de sensibilisation, participants, zones couvertes et résultats des activités EREE.</p>
+        </article>
+
+        <article class="card">
+            <h3>Reporting</h3>
+            <p>Rapports, tableaux de bord et exports pour le pilotage.</p>
+        </article>
+    </div>
+</section>
+{% endblock %}

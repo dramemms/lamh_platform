@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard LAMH - DCA Mali{% endblock %}
+
+{% block content %}
+<style>
+  .home-dashboard{
+    background:#f7f7f7;
+    padding:18px;
+  }
+
+  .home-title-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:6px solid #7f1d1d;
+    margin-bottom:24px;
+  }
+
+  .home-title{
+    font-size:2.2rem;
+    font-weight:900;
+    color:#333;
+    margin:0;
+  }
+
+  .last-update{
+    background:#fff;
+    padding:8px 18px;
+    text-align:center;
+    font-size:.9rem;
+  }
+
+  .last-update strong{
+    display:block;
+    color:#a12c36;
+  }
+
+  .home-grid{
+    display:grid;
+    grid-template-columns: 1fr 420px;
+    gap:34px;
+    align-items:start;
+  }
+
+  .intro-card{
+    background:#fff;
+    padding:22px 26px;
+    min-height:560px;
+  }
+
+  .intro-logo{
+    max-width:130px;
+    margin-bottom:18px;
+  }
+
+  .intro-card h3{
+    color:#a12c36;
+    font-size:1.05rem;
+    margin:22px 0 12px;
+  }
+
+  .intro-card p{
+    font-size:1rem;
+    line-height:1.55;
+    color:#333;
+    margin-bottom:14px;
+  }
+
+  .donors{
+    margin-top:28px;
+  }
+
+  .donor-title{
+    font-weight:900;
+    margin-bottom:12px;
+  }
+
+  .donor-logos{
+    display:flex;
+    align-items:center;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+
+  .donor-logos img{
+    max-height:42px;
+    max-width:150px;
+    object-fit:contain;
+  }
+
+  .module-menu{
+  display:flex;
+  flex-direction:column;
+  gap:44px;
+  margin-top:38px;
+}
+
+.module-item{
+  display:grid;
+  grid-template-columns:95px 1fr;
+  align-items:center;
+  gap:28px;
+}
+
+.module-icon-box{
+  width:86px;
+  height:86px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#fff;
+  border-radius:18px;
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
+  transition:.25s ease;
+}
+
+.module-icon{
+  width:64px;
+  height:64px;
+  object-fit:contain;
+}
+
+.module-btn{
+  height:84px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f7eeee;
+  border:1px solid #d8d8d8;
+  color:#333;
+  font-size:1.35rem;
+  font-weight:900;
+  text-decoration:none;
+  border-radius:4px;
+  box-shadow:0 4px 10px rgba(0,0,0,.05);
+  transition:.25s ease;
+}
+
+.module-item:hover .module-icon-box{
+  transform:scale(1.06);
+}
+
+.module-btn:hover,
+.module-active{
+  background:#a12c36;
+  color:#fff;
+  border-color:#a12c36;
+}
+
+  @media(max-width:1000px){
+    .home-grid{
+      grid-template-columns:1fr;
+    }
+
+    .module-menu{
+      margin-top:0;
+    }
+  }
+</style>
+
+<div class="home-dashboard">
+
+  <div class="home-title-row">
+    <h1 class="home-title">Dashboard LAMH - DCA Mali</h1>
+
+    <div class="last-update">
+      <strong>Dernière mise à jour</strong>
+      {% now "d/m/Y H:i" %}
+    </div>
+  </div>
+
+  <div class="home-grid">
+
+    <section class="intro-card">
+      
+
+      <h3>Objectif du Dashboard LAMH</h3>
+
+      <p>
+        Ce Dashboard a pour objectif de simplifier la gestion, la visualisation
+        et la diffusion des informations opérationnelles de la plateforme
+        <strong>LAMH de DCA Mali</strong>.
+      </p>
+
+      <h3>Les différentes pages</h3>
+
+      <p>
+        La première page <strong>(Accueil)</strong> présente l’objectif du Dashboard
+        ainsi que les boutons d’accès aux autres pages.
+      </p>
+
+      <p>
+        La deuxième page <strong>(EREE)</strong> offre une visualisation détaillée
+        des sessions d’éducation aux risques liés aux engins explosifs ainsi que
+        des bénéficiaires touchés.
+      </p>
+
+      <p>
+        La troisième page <strong>(Victimes)</strong> donne un aperçu détaillé du
+        nombre de victimes enregistrées, désagrégé par genre, âge, profession,
+        statut, issue, etc.
+      </p>
+
+      <p>
+        La quatrième page <strong>(Accidents)</strong> permet de visualiser les
+        données telles que le nombre d’accidents enregistrés, les types
+        d’accidents, les organisations concernées, les types d’engins et d’autres
+        indicateurs clés.
+      </p>
+
+      <div class="donors">
+        <div class="donor-title">
+          DCA est reconnaissant pour les différents soutiens de nos donateurs
+        </div>
+
+        <div class="donor-logos">
+  <img src="{% static 'img/swiss.png' %}" alt="Coopération Suisse">
+  <img src="{% static 'img/union_europenne.png' %}" alt="Union Européenne">
+  <img src="{% static 'img/ministere_danois.png' %}" alt="DANIDA">
+</div>
+      </div>
+    </section>
+
+    <section class="module-menu">
+
+  <!-- EREE -->
+  <div class="module-item">
+    <div class="module-icon-box">
+      <img src="{% static 'img/eree.png' %}" class="module-icon">
+    </div>
+    <a href="{% url 'eree_dashboard' %}"
+       class="module-btn {% if request.path|slice:':5' == '/eree' %}module-active{% endif %}">
+      EREE
+    </a>
+  </div>
+
+ <!-- VICTIME -->
+<div class="module-item">
+  <div class="module-icon-box">
+    <img src="{% static 'img/victimes.png' %}" class="module-icon">
+  </div>
+
+  <a href="{% url 'victim_dashboard' %}"
+     class="module-btn {% if request.path|slice:':8' == '/victims' %}module-active{% endif %}">
+    Victime
+  </a>
+</div>
+
+  <!-- ACCIDENT -->
+  <div class="module-item">
+    <div class="module-icon-box">
+      <img src="{% static 'img/accidents.png' %}" class="module-icon">
+    </div>
+    <a href="{% url 'accident_dashboard' %}"
+       class="module-btn {% if request.path|slice:':10' == '/incidents' %}module-active{% endif %}">
+      Accident
+    </a>
+  </div>
+
+  <!-- REPORTING -->
+<div class="module-item">
+  <div class="module-icon-box">
+    <img src="{% static 'img/reporting_assistance.png' %}" class="module-icon">
+  </div>
+
+ 
+  <a href="{% url 'reporting:assistance_dashboard' %}"
+     class="module-btn {% if request.path|slice:':10' == '/reporting' %}module-active{% endif %}">
+    
+    Assistance Victimes</a>
+</div>
+
+</section>
+  </div>
+</div>
+{% endblock %}

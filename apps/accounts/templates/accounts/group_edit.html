@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Modifier groupe{% endblock %}
+
+{% block content %}
+
+<div class="admin-page">
+
+    <div class="form-card">
+
+        <h1>Modifier le groupe</h1>
+
+        <p>
+            Groupe :
+            <strong>{{ access_group.group.name }}</strong>
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <button type="submit" class="btn btn-primary">
+                Enregistrer les modifications
+            </button>
+
+            <a href="{% url 'admin_groups' %}" class="btn btn-secondary">
+                ← Retour
+            </a>
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

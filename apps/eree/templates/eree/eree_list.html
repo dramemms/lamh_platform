@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Sessions EREE - LAMH Plateforme{% endblock %}
+
+{% block content %}
+<style>
+  .eree-card{
+    border-radius:22px;
+    border:1px solid #e5e7eb;
+    background:#fff;
+    padding:26px 32px;
+  }
+
+  .eree-toolbar{
+    display:flex;
+    align-items:flex-end;
+    gap:24px;
+    flex-wrap:wrap;
+    margin-bottom:28px;
+  }
+
+  .eree-field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .eree-field label{
+    font-weight:600;
+    color:#374151;
+  }
+
+  .eree-field input,
+  .eree-field select{
+    height:42px;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    padding:0 12px;
+    min-width:260px;
+  }
+
+  .eree-actions{
+    margin-left:auto;
+    display:flex;
+    gap:14px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  .eree-table-wrap{
+    width:100%;
+    overflow-x:hidden;
+  }
+
+  .eree-table{
+    width:100%;
+    table-layout:fixed;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .eree-table th,
+  .eree-table td{
+    padding:14px 10px !important;
+    vertical-align:middle;
+    border-bottom:1px solid #eef2f7;
+    font-size:0.92rem;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+  }
+
+  .eree-table th{
+    font-weight:800;
+    color:#111827;
+    background:#fff;
+  }
+
+  .eree-table td{
+    color:#111827;
+  }
+
+  .eree-ref{
+    font-weight:800;
+  }
+
+  .badge-participants{
+    display:inline-block;
+    min-width:42px;
+    text-align:center;
+    background:#111827;
+    color:#fff;
+    padding:5px 8px;
+    border-radius:10px;
+    font-weight:700;
+  }
+
+  .btn-view{
+    color:#5b21b6;
+    font-weight:700;
+    text-decoration:none;
+  }
+
+  .btn-view:hover{
+    text-decoration:underline;
+  }
+
+  @media(max-width: 992px){
+    .eree-card{
+      padding:20px 16px;
+    }
+
+    .eree-table th,
+    .eree-table td{
+      font-size:0.82rem;
+      padding:10px 6px !important;
+    }
+
+    .eree-field input,
+    .eree-field select{
+      min-width:220px;
+    }
+  }
+</style>
+
+<div class="container py-4">
+
+  <h1 class="mb-3" style="font-size:2.6rem;font-weight:700;">Sessions EREE</h1>
+
+  <p class="mb-4" style="font-size:1.15rem;">
+    Liste des activités d’éducation aux risques liés aux engins explosifs.
+  </p>
+
+  <div class="eree-card shadow-sm">
+
+    <form method="get" class="eree-toolbar">
+
+      <div class="eree-field">
+        <label>Recherche</label>
+        <input
+          type="text"
+          name="q"
+          value="{{ query }}"
+          placeholder="Référence, organisation, village..."
+        >
+      </div>
+
+      <div class="eree-field">
+        <label>Statut</label>
+        <select name="status">
+          <option value="">Tous les statuts</option>
+          <option value="SUBMITTED" {% if current_status == "SUBMITTED" %}selected{% endif %}>Soumis</option>
+          <option value="TECH_VALIDATED" {% if current_status == "TECH_VALIDATED" %}selected{% endif %}>Technique</option>
+          <option value="PROGRAM_VALIDATED" {% if current_status == "PROGRAM_VALIDATED" %}selected{% endif %}>Programme</option>
+          <option value="APPROVED" {% if current_status == "APPROVED" %}selected{% endif %}>Approuvé</option>
+        </select>
+      </div>
+
+      <div class="eree-actions">
+        <button type="submit" class="btn btn-dark">
+          Filtrer
+        </button>
+
+        <a href="{% url 'eree_list' %}" class="btn btn-outline-secondary">
+          Réinitialiser
+        </a>
+
+        <a href="{% url 'export_eree_excel' %}?{{ request.GET.urlencode }}"
+           class="btn btn-success">
+          📥 Export Excel
+        </a>
+      </div>
+
+    </form>
+
+    {% if sessions %}
+      <div class="eree-table-wrap">
+        <table class="eree-table">
+          <thead>
+            <tr>
+              <th>Référence</th>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Région</th>
+              <th>Cercle</th>
+              <th>Org</th>
+              <th>Participants</th>
+              <th>Statut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for session in sessions %}
+              <tr>
+                <td class="eree-ref">{{ session.reference }}</td>
+                <td>{{ session.session_date|date:"d/m/Y" }}</td>
+                <td>{{ session.sensitization_type|default:"-" }}</td>
+                <td>{{ session.region.name|default:"-" }}</td>
+                <td>{{ session.cercle.name|default:"-" }}</td>
+                <td>{{ session.organisation|default:"-" }}</td>
+                <td>
+                  <span class="badge-participants">{{ session.total_participants }}</span>
+                </td>
+                <td>{{ session.get_status_display }}</td>
+                <td>
+                  <a href="{% url 'eree_detail' session.pk %}" class="btn-view">
+                    Voir
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-4 text-muted">
+        Aucune session EREE disponible
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

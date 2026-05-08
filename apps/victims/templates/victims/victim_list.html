@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}Victimes - LAMH Plateforme{% endblock %}
+
+{% block content %}
+<style>
+  .section-card{
+    border-radius:22px;
+    border:1px solid #e5e7eb;
+    background:#fff;
+  }
+
+  .card-body-spacious{
+    padding:26px 32px;
+  }
+
+  .toolbar-row{
+    display:flex;
+    align-items:flex-end;
+    gap:24px;
+    flex-wrap:wrap;
+    margin-bottom:28px;
+  }
+
+  .toolbar-item{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .toolbar-item label{
+    font-weight:700;
+    color:#374151;
+  }
+
+  .toolbar-item input,
+  .toolbar-item select{
+    height:42px;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    padding:0 12px;
+    min-width:260px;
+  }
+
+  .toolbar-actions{
+    margin-left:auto;
+    display:flex;
+    gap:14px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  .toolbar-btn{
+    height:44px;
+    border-radius:12px;
+    padding:0 18px;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    white-space:nowrap;
+  }
+
+  .victim-table-wrap{
+    width:100%;
+    overflow-x:hidden;
+  }
+
+  .victim-table{
+    width:100%;
+    table-layout:fixed;
+    border-collapse:collapse;
+  }
+
+  .victim-table th,
+  .victim-table td{
+    padding:16px 12px !important;
+    vertical-align:middle;
+    border-bottom:1px solid #eef2f7;
+    font-size:0.95rem;
+    line-height:1.25;
+    overflow-wrap:break-word;
+  }
+
+  .victim-table th{
+    font-weight:800;
+    color:#020617;
+  }
+
+  .victim-ref,
+  .victim-name{
+    font-weight:800;
+    color:#020617;
+  }
+
+  /* Largeurs équilibrées */
+  .victim-table th:nth-child(1),
+  .victim-table td:nth-child(1){ width:13%; }
+
+  .victim-table th:nth-child(2),
+  .victim-table td:nth-child(2){ width:14%; }
+
+  .victim-table th:nth-child(3),
+  .victim-table td:nth-child(3){ width:7%; text-align:center; }
+
+  .victim-table th:nth-child(4),
+  .victim-table td:nth-child(4){ width:7%; text-align:center; }
+
+  .victim-table th:nth-child(5),
+  .victim-table td:nth-child(5){ width:16%; }
+
+  .victim-table th:nth-child(6),
+  .victim-table td:nth-child(6){ width:11%; }
+
+  .victim-table th:nth-child(7),
+  .victim-table td:nth-child(7){ width:17%; }
+
+  .victim-table th:nth-child(8),
+  .victim-table td:nth-child(8){ width:10%; }
+
+  .victim-table th:nth-child(9),
+  .victim-table td:nth-child(9){ width:5%; text-align:center; }
+
+  .status-badge{
+    font-weight:700;
+    line-height:1.2;
+  }
+
+  .btn-view{
+    color:#5b21b6;
+    font-weight:800;
+    text-decoration:none;
+  }
+
+  .btn-view:hover{
+    text-decoration:underline;
+  }
+
+  @media(max-width:992px){
+    .card-body-spacious{
+      padding:20px 16px;
+    }
+
+    .toolbar-actions{
+      margin-left:0;
+    }
+
+    .victim-table th,
+    .victim-table td{
+      font-size:0.82rem;
+      padding:10px 6px !important;
+    }
+  }
+</style>
+
+<div class="container py-4">
+  <h1 class="mb-3" style="font-size:2.6rem;font-weight:700;">Victimes</h1>
+
+  <p class="mb-4" style="font-size:1.15rem;">
+    Liste des victimes enregistrées dans la plateforme.
+  </p>
+
+  <div class="card shadow-sm section-card">
+    <div class="card-body card-body-spacious">
+
+      <form method="get" class="toolbar-row">
+        <div class="toolbar-item">
+          <label for="id_q">Recherche</label>
+          <input
+            id="id_q"
+            type="text"
+            name="q"
+            value="{{ query|default:'' }}"
+            placeholder="Rechercher une victime..."
+          >
+        </div>
+
+        <div class="toolbar-item">
+          <label for="id_status">Statut</label>
+          <select id="id_status" name="status">
+            <option value="">Tous les statuts</option>
+            <option value="SUBMITTED" {% if current_status == "SUBMITTED" %}selected{% endif %}>Soumis</option>
+            <option value="TECH_VALIDATED" {% if current_status == "TECH_VALIDATED" %}selected{% endif %}>Technique</option>
+            <option value="PROGRAM_VALIDATED" {% if current_status == "PROGRAM_VALIDATED" %}selected{% endif %}>Programme</option>
+            <option value="APPROVED" {% if current_status == "APPROVED" %}selected{% endif %}>Approuvé</option>
+          </select>
+        </div>
+
+        <div class="toolbar-actions">
+          <button type="submit" class="btn btn-dark toolbar-btn">Filtrer</button>
+
+          <a href="{% url 'victim_list' %}" class="btn btn-outline-secondary toolbar-btn">
+            Réinitialiser
+          </a>
+
+          <a href="{% url 'export_victims_excel' %}?{{ request.GET.urlencode }}"
+             class="btn btn-success toolbar-btn">
+            📥 Export Excel
+          </a>
+        </div>
+      </form>
+
+      {% if victims %}
+        <div class="victim-table-wrap">
+          <table class="victim-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nom complet</th>
+                <th>Sexe</th>
+                <th>Âge</th>
+                <th>Accident</th>
+                <th>Date rapport</th>
+                <th>Statut</th>
+             
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for victim in victims %}
+                <tr>
+                  <td class="victim-ref">{{ victim.victim_id|default:"-" }}</td>
+
+                  <td class="victim-name">
+                    {{ victim.victim_last_name|default:"-" }} {{ victim.victim_first_name|default:"" }}
+                  </td>
+
+                  <td>{{ victim.victim_sex|default:"-" }}</td>
+                  <td>{{ victim.victim_age|default:"-" }}</td>
+
+                  <td>
+                    {{ victim.accident_reference|default:victim.accident.reference|default:"-" }}
+                  </td>
+
+                  <td>{{ victim.report_date|date:"d/m/Y"|default:"-" }}</td>
+
+                  <td>
+                    {% if victim.status == "SUBMITTED" %}
+                      <span class="status-badge">Soumis</span>
+                    {% elif victim.status == "TECH_VALIDATED" %}
+                      <span class="status-badge">Validation technique</span>
+                    {% elif victim.status == "PROGRAM_VALIDATED" %}
+                      <span class="status-badge">Validé programme</span>
+                    {% elif victim.status == "APPROVED" %}
+                      <span class="status-badge">Approuvé</span>
+                    {% else %}
+                      <span>{{ victim.get_status_display|default:victim.status }}</span>
+                    {% endif %}
+                  </td>
+
+                  
+
+                  <td>
+                    <a href="{% url 'victim_detail' victim.pk %}" class="btn-view">
+                      Voir
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-muted">
+          Aucune victime trouvée.
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

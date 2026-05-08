@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Modifier victime - LAMH Plateforme{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4">Modifier la victime</h1>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        {% for field in form %}
+          <div class="mb-3">
+            {% if field.field.widget.input_type == "checkbox" %}
+              <div class="form-check">
+                {{ field }}
+                <label class="form-check-label" for="{{ field.id_for_label }}">
+                  {{ field.label }}
+                </label>
+              </div>
+            {% else %}
+              {{ field.label_tag }}
+              {{ field }}
+            {% endif %}
+
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+
+            {% for error in field.errors %}
+              <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">
+          Enregistrer
+        </button>
+        <a href="{% url 'victim_detail' victim.pk %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

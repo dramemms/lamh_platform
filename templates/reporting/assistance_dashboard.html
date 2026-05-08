@@ -1,0 +1,627 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard Assistance{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<div id="dashboard-export" style="width:100%; padding:10px 14px;">
+
+    <!-- HEADER -->
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:20px;
+        margin-bottom:10px;
+    ">
+
+        <div style="flex:1;">
+
+            <h3 style="
+                margin:0;
+                font-size:34px;
+                font-weight:900;
+                color:#071d49;
+                text-align:left;
+                line-height:1.1;
+            ">
+                Dashboard Assistance aux Victimes LAMH - DCA Mali
+            </h3>
+
+            <div style="
+                height:5px;
+                background:#9d1b2e;
+                margin-top:8px;
+                border-radius:10px;
+                width:100%;
+            "></div>
+
+        </div>
+
+        <a href="#" id="exportImageBtn" style="
+            background:#9d1b2e;
+            color:white;
+            padding:12px 20px;
+            border-radius:12px;
+            text-decoration:none;
+            font-weight:900;
+            font-size:16px;
+            white-space:nowrap;
+        ">
+            Exporter en image
+        </a>
+
+    </div>
+
+    <!-- LAYOUT -->
+    <div style="
+        display:grid;
+        grid-template-columns:220px 1fr;
+        gap:12px;
+        align-items:start;
+    ">
+
+        <!-- FILTRE -->
+        <div style="
+            background:white;
+            border-radius:18px;
+            padding:14px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+        ">
+
+            <div style="text-align:center; margin-bottom:14px;">
+                <img src="{% static 'img/dca_logo.png' %}" style="width:120px;">
+            </div>
+
+            <form method="get">
+
+                <div style="margin-bottom:14px;">
+                    <label style="
+                        font-size:15px;
+                        font-weight:900;
+                        color:#9d1b2e;
+                        display:block;
+                        margin-bottom:6px;
+                    ">
+                        Catégorie d'assistance
+                    </label>
+
+                    <select name="categorie_assistance" style="
+                        width:100%;
+                        height:42px;
+                        border-radius:12px;
+                        border:1px solid #d7d7d7;
+                        padding:0 12px;
+                        font-size:14px;
+                    ">
+                        <option value="">Toutes</option>
+
+                        {% for item in categories_assistance %}
+                        <option value="{{ item }}"
+                            {% if request.GET.categorie_assistance == item %}selected{% endif %}>
+                            {{ item }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <label style="
+                        font-size:15px;
+                        font-weight:900;
+                        color:#9d1b2e;
+                        display:block;
+                        margin-bottom:6px;
+                    ">
+                        Type d’assistance
+                    </label>
+
+                    <select name="type_assistance" style="
+                        width:100%;
+                        height:42px;
+                        border-radius:12px;
+                        border:1px solid #d7d7d7;
+                        padding:0 12px;
+                        font-size:14px;
+                    ">
+                        <option value="">Tous</option>
+
+                        {% for item in types_assistance %}
+                        <option value="{{ item }}"
+                            {% if request.GET.type_assistance == item %}selected{% endif %}>
+                            {{ item }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="margin-bottom:14px;">
+                    <label style="
+                        font-size:15px;
+                        font-weight:900;
+                        color:#9d1b2e;
+                        display:block;
+                        margin-bottom:6px;
+                    ">
+                        Mode de paiement
+                    </label>
+
+                    <select name="mode_paiement" style="
+                        width:100%;
+                        height:42px;
+                        border-radius:12px;
+                        border:1px solid #d7d7d7;
+                        padding:0 12px;
+                        font-size:14px;
+                    ">
+                        <option value="">Tous</option>
+
+                        {% for item in modes_paiement %}
+                        <option value="{{ item }}"
+                            {% if request.GET.mode_paiement == item %}selected{% endif %}>
+                            {{ item }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="
+                        font-size:15px;
+                        font-weight:900;
+                        color:#9d1b2e;
+                        display:block;
+                        margin-bottom:6px;
+                    ">
+                        Cercle
+                    </label>
+
+                    <select name="cercle" style="
+                        width:100%;
+                        height:42px;
+                        border-radius:12px;
+                        border:1px solid #d7d7d7;
+                        padding:0 12px;
+                        font-size:14px;
+                    ">
+                        <option value="">Tous</option>
+
+                        {% for item in cercles %}
+                        <option value="{{ item }}"
+                            {% if request.GET.cercle == item %}selected{% endif %}>
+                            {{ item }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" style="
+                    width:100%;
+                    height:46px;
+                    border:none;
+                    border-radius:12px;
+                    background:#a4172c;
+                    color:white;
+                    font-size:16px;
+                    font-weight:900;
+                    cursor:pointer;
+                ">
+                    Appliquer
+                </button>
+
+                <a href="{% url 'reporting:assistance_dashboard' %}" style="
+                    display:block;
+                    text-align:center;
+                    margin-top:10px;
+                    color:#5b21b6;
+                    font-weight:900;
+                    text-decoration:none;
+                ">
+                    Réinitialiser
+                </a>
+
+            </form>
+
+        </div>
+
+        <!-- CONTENU -->
+        <div>
+
+            <!-- KPI -->
+            <div style="
+                display:grid;
+                grid-template-columns:repeat(4,1fr);
+                gap:10px;
+                margin-bottom:10px;
+            ">
+
+                <!-- TOTAL ASSISTANCES -->
+                <div style="
+                    background:white;
+                    border-radius:16px;
+                    padding:12px;
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                ">
+                    <div style="text-align:center; width:100%;">
+                        <div style="
+                            font-size:14px;
+                            font-weight:900;
+                            color:#071d49;
+                        ">
+                            Total assistances
+                        </div>
+
+                        <div style="
+                            font-size:42px;
+                            font-weight:900;
+                            color:#a4172c;
+                        ">
+                            {{ total_assistances }}
+                        </div>
+                    </div>
+
+                    <img src="{% static 'img/reporting_assistance.png' %}"
+                         style="width:55px;">
+                </div>
+
+                <!-- TOTAL VICTIMES -->
+                <div style="
+                    background:white;
+                    border-radius:16px;
+                    padding:12px;
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                ">
+                    <div style="text-align:center; width:100%;">
+                        <div style="
+                            font-size:14px;
+                            font-weight:900;
+                            color:#071d49;
+                        ">
+                            Total victimes
+                        </div>
+
+                        <div style="
+                            font-size:42px;
+                            font-weight:900;
+                            color:#a4172c;
+                        ">
+                            {{ total_victimes }}
+                        </div>
+                    </div>
+
+                    <img src="{% static 'img/victimes.png' %}"
+                         style="width:55px;">
+                </div>
+
+                <!-- HOMMES -->
+                <div style="
+                    background:white;
+                    border-radius:16px;
+                    padding:12px;
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                ">
+                    <div style="text-align:center; width:100%;">
+                        <div style="
+                            font-size:14px;
+                            font-weight:900;
+                            color:#071d49;
+                        ">
+                            Masculin
+                        </div>
+
+                        <div style="
+                            font-size:42px;
+                            font-weight:900;
+                            color:#a4172c;
+                        ">
+                            {{ total_hommes }}
+                        </div>
+                    </div>
+
+                    <img src="{% static 'img/homme.png' %}"
+                         style="width:46px;">
+                </div>
+
+                <!-- FEMMES -->
+                <div style="
+                    background:white;
+                    border-radius:16px;
+                    padding:12px;
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                ">
+                    <div style="text-align:center; width:100%;">
+                        <div style="
+                            font-size:14px;
+                            font-weight:900;
+                            color:#071d49;
+                        ">
+                            Féminin
+                        </div>
+
+                        <div style="
+                            font-size:42px;
+                            font-weight:900;
+                            color:#a4172c;
+                        ">
+                            {{ total_femmes }}
+                        </div>
+                    </div>
+
+                    <img src="{% static 'img/femme.png' %}"
+                         style="width:46px;">
+                </div>
+
+            </div>
+
+            <!-- GRAPHIQUES -->
+            <!-- REMPLACE UNIQUEMENT LA SECTION DES GRAPHIQUES PAR CELLE-CI -->
+
+<!-- GRAPHIQUES -->
+<div style="
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+">
+
+    <!-- TYPE -->
+    <div style="
+        background:white;
+        border-radius:14px;
+        padding:8px;
+        height:260px;
+        box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    ">
+        <h3 style="
+            margin:0 0 4px;
+            color:#071d49;
+            font-size:14px;
+            font-weight:800;
+        ">
+            Assistances par type
+        </h3>
+
+        <div style="height:210px;">
+            <canvas id="typeChart"></canvas>
+        </div>
+    </div>
+
+    <!-- CATEGORIE -->
+    <div style="
+        background:white;
+        border-radius:14px;
+        padding:8px;
+        height:260px;
+        box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    ">
+        <h3 style="
+            margin:0 0 4px;
+            color:#071d49;
+            font-size:14px;
+            font-weight:800;
+        ">
+            Catégories d'assistance
+        </h3>
+
+        <div style="height:210px;">
+            <canvas id="categorieChart"></canvas>
+        </div>
+    </div>
+
+    <!-- MODE -->
+    <div style="
+        background:white;
+        border-radius:14px;
+        padding:8px;
+        height:260px;
+        box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    ">
+        <h3 style="
+            margin:0 0 4px;
+            color:#071d49;
+            font-size:14px;
+            font-weight:800;
+        ">
+            Mode de paiement
+        </h3>
+
+        <div style="height:210px;">
+            <canvas id="modeChart"></canvas>
+        </div>
+    </div>
+
+    <!-- SEXE -->
+    <div style="
+        background:white;
+        border-radius:14px;
+        padding:8px;
+        height:260px;
+        box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    ">
+        <h3 style="
+            margin:0 0 4px;
+            color:#071d49;
+            font-size:14px;
+            font-weight:800;
+        ">
+            Assistances par sexe
+        </h3>
+
+        <div style="height:210px;">
+            <canvas id="sexeChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- MAP -->
+<div style="
+    background:white;
+    border-radius:14px;
+    padding:8px;
+    margin-top:8px;
+    height:280px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.06);
+">
+
+    <h3 style="
+        margin:0 0 4px;
+        color:#071d49;
+        font-size:14px;
+        font-weight:800;
+    ">
+        Heatmap assistance par cercle
+    </h3>
+
+    <div id="map"
+         style="
+            height:230px;
+            border-radius:12px;
+         ">
+    </div>
+
+</div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+document.getElementById("exportImageBtn").addEventListener("click", function (e) {
+
+    e.preventDefault();
+
+    html2canvas(document.querySelector("#dashboard-export"), {
+        scale: 2,
+        useCORS: true
+    }).then(canvas => {
+
+        const link = document.createElement("a");
+
+        link.download = "dashboard_assistance.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+
+    });
+
+});
+
+new Chart(document.getElementById('typeChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ type_labels|safe }},
+        datasets: [{
+            data: {{ type_values|safe }},
+            backgroundColor: '#a4172c'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    precision: 0
+                }
+            }
+        }
+    }
+});
+
+new Chart(document.getElementById('categorieChart'), {
+    type: 'pie',
+    data: {
+        labels: {{ categorie_labels|safe }},
+        datasets: [{
+            data: {{ categorie_values|safe }}
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+new Chart(document.getElementById('modeChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ paiement_labels|safe }},
+        datasets: [{
+            data: {{ paiement_values|safe }}
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+new Chart(document.getElementById('sexeChart'), {
+    type: 'pie',
+    data: {
+        labels: ['Masculin', 'Féminin'],
+        datasets: [{
+            data: [{{ total_hommes }}, {{ total_femmes }}]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+var map = L.map('map').setView([17.5707, -3.9962], 6);
+
+L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        attribution: '&copy; OpenStreetMap'
+    }
+).addTo(map);
+
+var points = {{ heatmap_points|safe }};
+
+points.forEach(function(p){
+
+    L.circle([p.lat, p.lng], {
+
+        color: '#9b1c2b',
+        fillColor: '#c81e1e',
+        fillOpacity: 0.45,
+        radius: p.count * 4000
+
+    })
+
+    .addTo(map)
+
+    .bindPopup(
+        "<b>" + p.cercle + "</b><br>Assistances : " + p.count
+    );
+
+});
+
+</script>
+
+{% endblock %}

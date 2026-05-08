@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Désactiver utilisateur{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="confirm-card">
+        <h1>Désactiver le compte</h1>
+
+        <p>
+            Voulez-vous désactiver le compte de
+            <strong>{{ user_obj.username }}</strong> ?
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-danger">Oui, désactiver</button>
+            <a href="{% url 'admin_users' %}" class="btn-secondary">Annuler</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

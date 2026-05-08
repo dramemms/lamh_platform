@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}Modifier Accident - LAMH Accident{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Modifier le rapport d'accident</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <strong>Le formulaire contient des erreurs :</strong>
+            <ul class="mb-0 mt-2">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li><strong>{{ field.label }}</strong> : {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h3>{{ accident.reference }} - {{ accident.title }}</h3>
+            <p><strong>Statut :</strong> {{ accident.get_status_display }}</p>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <hr>
+                <h5>Détails de l'accident</h5>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.accident_date.label }} :</strong></label>
+                    {{ form.accident_date }}
+                    <div class="text-danger small">{{ form.accident_date.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.accident_time.label }} :</strong></label>
+                    {{ form.accident_time }}
+                    <div class="text-danger small">{{ form.accident_time.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.category.label }} :</strong></label>
+                    {{ form.category }}
+                    <div class="text-danger small">{{ form.category.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.number_victims.label }} :</strong></label>
+                    {{ form.number_victims }}
+                    <div class="text-danger small">{{ form.number_victims.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.other_damage.label }} :</strong></label>
+                    {{ form.other_damage }}
+                    <div class="text-danger small">{{ form.other_damage.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.activity_at_time.label }} :</strong></label>
+                    {{ form.activity_at_time }}
+                    <div class="text-danger small">{{ form.activity_at_time.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.description.label }} :</strong></label>
+                    {{ form.description }}
+                    <div class="text-danger small">{{ form.description.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.accident_associe_id.label }} :</strong></label>
+                    {{ form.accident_associe_id }}
+                    <div class="text-danger small">{{ form.accident_associe_id.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.device_type.label }} :</strong></label>
+                    {{ form.device_type }}
+                    <div class="text-danger small">{{ form.device_type.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.device_status.label }} :</strong></label>
+                    {{ form.device_status }}
+                    <div class="text-danger small">{{ form.device_status.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.device_marked.label }} :</strong></label>
+                    {{ form.device_marked }}
+                    <div class="text-danger small">{{ form.device_marked.errors }}</div>
+                </div>
+
+                <hr>
+                <h5>Organisation / Reporting</h5>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.report_date.label }} :</strong></label>
+                    {{ form.report_date }}
+                    <div class="text-danger small">{{ form.report_date.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.org_name.label }} :</strong></label>
+                    {{ form.org_name }}
+                    <div class="text-danger small">{{ form.org_name.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.reported_by.label }} :</strong></label>
+                    {{ form.reported_by }}
+                    <div class="text-danger small">{{ form.reported_by.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.position.label }} :</strong></label>
+                    {{ form.position }}
+                    <div class="text-danger small">{{ form.position.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.team.label }} :</strong></label>
+                    {{ form.team }}
+                    <div class="text-danger small">{{ form.team.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.funding_source.label }} :</strong></label>
+                    {{ form.funding_source }}
+                    <div class="text-danger small">{{ form.funding_source.errors }}</div>
+                </div>
+
+                <hr>
+                <h5>Localisation</h5>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.country.label }} :</strong></label>
+                    {{ form.country }}
+                    <div class="text-danger small">{{ form.country.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.region.label }} :</strong></label>
+                    {{ form.region }}
+                    <div class="text-danger small">{{ form.region.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.cercle.label }} :</strong></label>
+                    {{ form.cercle }}
+                    <div class="text-danger small">{{ form.cercle.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.commune.label }} :</strong></label>
+                    {{ form.commune }}
+                    <div class="text-danger small">{{ form.commune.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.locality.label }} :</strong></label>
+                    {{ form.locality }}
+                    <div class="text-danger small">{{ form.locality.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.latitude.label }} :</strong></label>
+                    {{ form.latitude }}
+                    <div class="text-danger small">{{ form.latitude.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.longitude.label }} :</strong></label>
+                    {{ form.longitude }}
+                    <div class="text-danger small">{{ form.longitude.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.secure_access.label }} :</strong></label>
+                    {{ form.secure_access }}
+                    <div class="text-danger small">{{ form.secure_access.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.src_coordinates.label }} :</strong></label>
+                    {{ form.src_coordinates }}
+                    <div class="text-danger small">{{ form.src_coordinates.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.location_gps.label }} :</strong></label>
+                    {{ form.location_gps }}
+                    <div class="text-danger small">{{ form.location_gps.errors }}</div>
+                </div>
+
+                <hr>
+                <h5>Source d'information</h5>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source_name.label }} :</strong></label>
+                    {{ form.source_name }}
+                    <div class="text-danger small">{{ form.source_name.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source_contact.label }} :</strong></label>
+                    {{ form.source_contact }}
+                    <div class="text-danger small">{{ form.source_contact.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source_last_name.label }} :</strong></label>
+                    {{ form.source_last_name }}
+                    <div class="text-danger small">{{ form.source_last_name.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source_first_name.label }} :</strong></label>
+                    {{ form.source_first_name }}
+                    <div class="text-danger small">{{ form.source_first_name.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source_gender.label }} :</strong></label>
+                    {{ form.source_gender }}
+                    <div class="text-danger small">{{ form.source_gender.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source_age.label }} :</strong></label>
+                    {{ form.source_age }}
+                    <div class="text-danger small">{{ form.source_age.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source_type.label }} :</strong></label>
+                    {{ form.source_type }}
+                    <div class="text-danger small">{{ form.source_type.errors }}</div>
+                </div>
+
+                <hr>
+                <h5>Soumissionnaire</h5>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.submitter_email.label }} :</strong></label>
+                    {{ form.submitter_email }}
+                    <div class="text-danger small">{{ form.submitter_email.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.submitter_first_name.label }} :</strong></label>
+                    {{ form.submitter_first_name }}
+                    <div class="text-danger small">{{ form.submitter_first_name.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.submitter_last_name.label }} :</strong></label>
+                    {{ form.submitter_last_name }}
+                    <div class="text-danger small">{{ form.submitter_last_name.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.submitter_phone.label }} :</strong></label>
+                    {{ form.submitter_phone }}
+                    <div class="text-danger small">{{ form.submitter_phone.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.submitter_organization.label }} :</strong></label>
+                    {{ form.submitter_organization }}
+                    <div class="text-danger small">{{ form.submitter_organization.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.submitter_role.label }} :</strong></label>
+                    {{ form.submitter_role }}
+                    <div class="text-danger small">{{ form.submitter_role.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.submitter_username.label }} :</strong></label>
+                    {{ form.submitter_username }}
+                    <div class="text-danger small">{{ form.submitter_username.errors }}</div>
+                </div>
+
+                <hr>
+                <h5>Système / Kobo</h5>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.source.label }} :</strong></label>
+                    {{ form.source }}
+                    <div class="text-danger small">{{ form.source.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.kobo_submission_id.label }} :</strong></label>
+                    {{ form.kobo_submission_id }}
+                    <div class="text-danger small">{{ form.kobo_submission_id.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.kobo_uuid.label }} :</strong></label>
+                    {{ form.kobo_uuid }}
+                    <div class="text-danger small">{{ form.kobo_uuid.errors }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>{{ form.kobo_asset_uid.label }} :</strong></label>
+                    {{ form.kobo_asset_uid }}
+                    <div class="text-danger small">{{ form.kobo_asset_uid.errors }}</div>
+                </div>
+
+                <hr>
+                <h5>Commentaire de modification</h5>
+
+                <div class="mb-3">
+                    {{ form.comment }}
+                    <div class="text-danger small">{{ form.comment.errors }}</div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-sm">💾 Enregistrer</button>
+                    <a href="{% url 'accident_detail' accident.pk %}" class="btn btn-secondary btn-sm">Annuler</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

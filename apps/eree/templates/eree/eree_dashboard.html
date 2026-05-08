@@ -1,0 +1,723 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard EREE - LAMH Plateforme{% endblock %}
+
+{% block content %}
+
+<style>
+body { background: #eef1f4; }
+
+.eree-page {
+  padding: 12px 18px;
+  height: auto;
+}
+
+.eree-title {
+  font-size: 30px;
+  font-weight: 900;
+  color: #0b1f3a;
+  border-bottom: 5px solid #7b1f28;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+}
+
+.eree-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 18px;
+  height: auto;
+}
+
+.filter-panel {
+  background: #fff;
+  padding: 14px 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.filter-logo { text-align: center; margin-bottom: 22px; }
+.filter-logo img { max-width: 130px; }
+
+.filter-group { margin-bottom: 16px; }
+
+.filter-group label {
+  display: block;
+  color: #a8323d;
+  font-weight: 900;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.filter-group select {
+  width: 100%;
+  height: 31px;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 4px;
+}
+
+.reset-btn {
+  width: 160px;
+  display: block;
+  margin: 20px auto 0;
+  padding: 10px;
+  border: none;
+  background: #f3f3ef;
+  font-weight: 900;
+  color: #555;
+  text-align: center;
+  text-decoration: none;
+}
+
+.eree-top-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.page-btn,
+.export-image-btn {
+  background: #a8323d;
+  color: white;
+  padding: 9px 18px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+}
+
+.export-image-btn {
+  background: #198754;
+}
+
+.page-btn:hover {
+  background: #7b1f28;
+  color: white;
+}
+
+.export-image-btn:hover {
+  background: #146c43;
+  color: white;
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.kpi-card {
+  background: #fff;
+  display: grid;
+  grid-template-columns: 62px 1fr 78px;
+  align-items: center;
+  height: 100px;
+  padding: 8px 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  border: 1px solid #e5e5e5;
+  overflow: hidden;
+}
+
+.kpi-card img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.kpi-center { text-align: center; }
+
+.kpi-title {
+  font-size: 15px;
+  color: #666;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #d96373;
+  line-height: 1;
+}
+
+.kpi-numbers {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.kpi-percent {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+  margin-left: auto;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.15fr;
+  grid-template-rows: clamp(310px, 30vh, 390px) clamp(310px, 30vh, 390px);
+  gap: 12px;
+}
+
+.chart-card {
+  background: #fff;
+  padding: clamp(10px, 1vw, 18px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  border: 1px solid #e5e5e5;
+  overflow: hidden;
+  min-height: clamp(310px, 30vh, 390px);
+}
+
+.chart-title {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.chart-card canvas {
+  width: 100% !important;
+  height: clamp(250px, 26vh, 340px) !important;
+}
+
+.table-scroll {
+  max-height: calc(100% - 35px);
+  overflow-y: auto;
+}
+
+.civil-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 12px;
+}
+
+.civil-table th,
+.civil-table td {
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.civil-table th {
+  background: #a8323d;
+  color: #fff;
+  padding: 7px 6px;
+  text-align: left;
+  font-size: 11px;
+}
+
+.civil-table td {
+  padding: 6px 6px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+}
+
+.civil-table th:nth-child(2),
+.civil-table td:nth-child(2),
+.civil-table th:nth-child(3),
+.civil-table td:nth-child(3) {
+  text-align: right;
+}
+
+.civil-table tfoot td {
+  background: #a8323d;
+  color: #fff;
+  font-weight: 900;
+}
+
+@media(max-width: 1200px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
+  .chart-card { height: 340px; min-height: 340px; }
+  .chart-card canvas { height: 285px !important; }
+}
+
+@media(max-width: 800px) {
+  .eree-layout { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="eree-page" id="dashboard-content">
+
+  <div class="eree-top-actions">
+    <button type="button" onclick="exportEreeDashboardImage()" class="export-image-btn">
+      Exporter le dashboard en image
+    </button>
+
+    <a href="{% url 'eree_dashboard_page2' %}" class="page-btn">Page 2 →</a>
+  </div>
+
+  <div class="eree-title">Dashboard EREE LAMH - DCA Mali</div>
+
+  <div class="eree-layout">
+
+    <aside class="filter-panel">
+      <div class="filter-logo">
+        <img src="{% static 'img/dca_logo.png' %}" alt="DCA">
+      </div>
+
+      <form method="get" id="ereeFilterForm">
+
+  <div class="filter-group">
+    <label>Organisation</label>
+    <select name="organisation">
+      <option value="">Tout</option>
+      {% for item in organisations %}
+        <option value="{{ item }}" {% if selected_organisation == item %}selected{% endif %}>
+          {{ item }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Source de financement</label>
+    <select name="funding_source">
+      <option value="">Tout</option>
+      {% for item in funding_sources %}
+        <option value="{{ item }}" {% if selected_funding_source == item %}selected{% endif %}>
+          {{ item }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Type de session</label>
+    <select name="session_type">
+      <option value="">Tout</option>
+      {% for item in session_types %}
+        <option value="{{ item }}" {% if selected_session_type == item %}selected{% endif %}>
+          {{ item }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Région</label>
+    <select name="region">
+      <option value="">Tout</option>
+      {% for item in regions %}
+        <option value="{{ item.region_id }}" {% if selected_region == item.region_id|stringformat:"s" %}selected{% endif %}>
+          {{ item.region__name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Cercle</label>
+    <select name="cercle">
+      <option value="">Tout</option>
+      {% for item in cercles %}
+        <option value="{{ item.cercle_id }}" {% if selected_cercle == item.cercle_id|stringformat:"s" %}selected{% endif %}>
+          {{ item.cercle__name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Commune</label>
+    <select name="commune">
+      <option value="">Tout</option>
+      {% for item in communes %}
+        <option value="{{ item.commune_id }}" {% if selected_commune == item.commune_id|stringformat:"s" %}selected{% endif %}>
+          {{ item.commune__name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- ✅ BOUTONS -->
+  <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+
+    <button type="submit" style="
+      background:#a8323d;
+      color:white;
+      border:none;
+      padding:10px;
+      font-weight:900;
+      cursor:pointer;
+      border-radius:4px;
+    ">
+      Appliquer filtre
+    </button>
+
+    <a href="{% url 'eree_dashboard' %}" class="reset-btn">
+      Reset
+    </a>
+
+  </div>
+
+</form>
+    </aside>
+
+    <main class="dashboard-content">
+
+      <div class="kpi-row">
+
+        <section class="kpi-card">
+          <img src="{% static 'img/eree.png' %}" alt="Sessions EREE">
+          <div class="kpi-center">
+            <div class="kpi-title">Sessions EREE</div>
+            <div class="kpi-value">{{ total_sessions }}</div>
+          </div>
+          <div></div>
+        </section>
+
+        <section class="kpi-card">
+          <img src="{% static 'img/beneficiaires.png' %}" alt="Bénéficiaires">
+          <div class="kpi-center">
+            <div class="kpi-title">Bénéficiaires</div>
+            <div class="kpi-value">{{ total_beneficiaries }}</div>
+          </div>
+          <div></div>
+        </section>
+
+        <section class="kpi-card">
+          <img src="{% static 'img/homme.png' %}" alt="Masculin">
+          <div class="kpi-center">
+            <div class="kpi-title">Masculin</div>
+            <div class="kpi-numbers">
+              <span class="kpi-value">{{ total_male }}</span>
+              <span class="kpi-percent">{{ male_pct }}%</span>
+            </div>
+          </div>
+          <div></div>
+        </section>
+
+        <section class="kpi-card">
+          <img src="{% static 'img/femme.png' %}" alt="Féminin">
+          <div class="kpi-center">
+            <div class="kpi-title">Féminin</div>
+            <div class="kpi-numbers">
+              <span class="kpi-value">{{ total_female }}</span>
+              <span class="kpi-percent">{{ female_pct }}%</span>
+            </div>
+          </div>
+          <div></div>
+        </section>
+
+      </div>
+
+      <div class="chart-grid">
+
+        <section class="chart-card">
+          <div class="chart-title">Nombre de sessions EREE</div>
+          <canvas id="treemapChart"></canvas>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-title">Tranche d'âge des bénéficiaires</div>
+          <canvas id="ageChart"></canvas>
+        </section>
+
+        <section class="chart-card table-card">
+          <div class="chart-title">Bénéficiaires par sous-catégories de civils</div>
+
+          <div class="table-scroll">
+            <table class="civil-table table-compact">
+              <thead>
+                <tr>
+                  <th>Sous-catégories de civils</th>
+                  <th>Total</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {% for row in civil_subcategories %}
+                  {% if row.total > 0 %}
+                    <tr>
+                      <td>{{ row.label }}</td>
+                      <td>{{ row.total }}</td>
+                      <td>
+                        {% widthratio row.total total_beneficiaries 100 %}%
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% empty %}
+                  <tr>
+                    <td colspan="3">Aucune donnée</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td>{{ total_beneficiaries }}</td>
+                  <td>100%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-title">Statut des bénéficiaires</div>
+          <canvas id="statusChart"></canvas>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-title">Catégorie de bénéficiaires</div>
+          <canvas id="categoryChart"></canvas>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-title">Travailleurs humanitaires</div>
+          <canvas id="humanChart"></canvas>
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const sessionLabels = {{ sessions_labels_json|safe }};
+const sessionValues = {{ sessions_values_json|safe }};
+
+const ageData = {{ age_groups_json|safe }};
+const statusData = {{ status_json|safe }};
+const categoryData = {{ category_json|safe }};
+const humanData = {{ humanitarian_json|safe }};
+
+const treemapData = sessionLabels.map((label, i) => ({
+  name: label || "Non défini",
+  value: sessionValues[i] || 0
+}));
+
+const colors = [
+  "#1e90f2",
+  "#17239b",
+  "#ed6a35",
+  "#7a007d",
+  "#db3fa0",
+  "#7652bf",
+  "#e3b900"
+];
+
+const roundLegend = {
+  position: "right",
+  labels: {
+    usePointStyle: true,
+    pointStyle: "circle",
+    padding: 14,
+    boxWidth: 10,
+    boxHeight: 10,
+    color: "#555",
+    font: {
+      size: 12,
+      weight: "700"
+    }
+  }
+};
+
+const pieDataLabels = {
+  color: "#fff",
+  anchor: "center",
+  align: "center",
+  clamp: true,
+  clip: false,
+  textStrokeColor: "rgba(0,0,0,.35)",
+  textStrokeWidth: 2,
+  font: {
+    weight: "900",
+    size: 11
+  },
+  formatter: function(value, ctx) {
+    const data = ctx.chart.data.datasets[0].data;
+    const total = data.reduce((a, b) => Number(a) + Number(b), 0);
+
+    if (!value || total === 0) return "";
+
+    const pct = ((value / total) * 100).toFixed(1).replace(".", ",");
+    return pct + "%";
+  }
+};
+
+new Chart(document.getElementById("treemapChart"), {
+  type: "treemap",
+  data: {
+    datasets: [{
+      tree: treemapData,
+      key: "value",
+      groups: ["name"],
+      backgroundColor: "#1e90f2",
+      borderColor: "#fff",
+      borderWidth: 2,
+      labels: {
+        display: true,
+        color: "#fff",
+        font: { size: 13, weight: "bold" },
+        formatter(ctx) {
+          return ctx.raw._data.name;
+        }
+      }
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: { display: false }
+    }
+  }
+});
+
+new Chart(document.getElementById("ageChart"), {
+  type: "pie",
+  data: {
+    labels: Object.keys(ageData),
+    datasets: [{
+      data: Object.values(ageData),
+      backgroundColor: colors,
+      borderColor: "#fff",
+      borderWidth: 2
+    }]
+  },
+  plugins: [ChartDataLabels],
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: 8 },
+    plugins: {
+      legend: roundLegend,
+      datalabels: pieDataLabels
+    }
+  }
+});
+
+new Chart(document.getElementById("statusChart"), {
+  type: "pie",
+  data: {
+    labels: Object.keys(statusData),
+    datasets: [{
+      data: Object.values(statusData),
+      backgroundColor: ["#1e90f2", "#17239b", "#ed6a35"],
+      borderColor: "#fff",
+      borderWidth: 2
+    }]
+  },
+  plugins: [ChartDataLabels],
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: 8 },
+    plugins: {
+      legend: roundLegend,
+      datalabels: pieDataLabels
+    }
+  }
+});
+
+new Chart(document.getElementById("categoryChart"), {
+  type: "pie",
+  data: {
+    labels: Object.keys(categoryData),
+    datasets: [{
+      data: Object.values(categoryData),
+      backgroundColor: ["#1e90f2", "#17239b", "#ed6a35", "#7a007d"],
+      borderColor: "#fff",
+      borderWidth: 2
+    }]
+  },
+  plugins: [ChartDataLabels],
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: 8 },
+    plugins: {
+      legend: roundLegend,
+      datalabels: pieDataLabels
+    }
+  }
+});
+
+new Chart(document.getElementById("humanChart"), {
+  type: "bar",
+  data: {
+    labels: Object.keys(humanData),
+    datasets: [{
+      data: Object.values(humanData),
+      backgroundColor: "#a8323d",
+      borderRadius: 6
+    }]
+  },
+  options: {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: { display: false }
+    },
+    scales: {
+      x: { beginAtZero: true },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+function exportEreeDashboardImage() {
+  const dashboard = document.getElementById("dashboard-content");
+  const actions = document.querySelector(".eree-top-actions");
+
+  if (actions) {
+    actions.style.display = "none";
+  }
+
+  setTimeout(function(){
+    html2canvas(dashboard, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      windowWidth: document.body.scrollWidth,
+      windowHeight: document.body.scrollHeight,
+      scrollY: -window.scrollY
+    }).then(function(canvas) {
+      const link = document.createElement("a");
+      link.download = "dashboard_eree_lamh.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      if (actions) {
+        actions.style.display = "flex";
+      }
+    }).catch(function(error) {
+      if (actions) {
+        actions.style.display = "flex";
+      }
+      console.error("Erreur export image :", error);
+      alert("Erreur lors de l'export image.");
+    });
+  }, 400);
+}
+
+</script>
+
+{% endblock %}

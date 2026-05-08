@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - LAMH Platform{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p class="muted">Vue d’ensemble des modules de la plateforme</p>
+    </div>
+</div>
+
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Incidents</div>
+        <div class="stat-value">{{ accidents_count|default:0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Victimes</div>
+        <div class="stat-value">{{ victims_count|default:0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">EREE</div>
+        <div class="stat-value">{{ eree_count|default:0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Soumissions</div>
+        <div class="stat-value">{{ submissions_count|default:0 }}</div>
+    </div>
+</section>
+
+<section class="grid grid-3">
+    <a href="{% url 'accident_list' %}" class="card module-card module-link">
+        <h3>Accidents</h3>
+        <p>Créer, consulter et mettre à jour les incidents.</p>
+    </a>
+
+    <a href="{% url 'victim_list' %}" class="card module-card module-link">
+        <h3>Victimes</h3>
+        <p>Suivre les profils, références et informations associées.</p>
+    </a>
+
+    <a href="{% url 'eree_list' %}" class="card module-card module-link">
+        <h3>EREE</h3>
+        <p>Suivre les sessions de sensibilisation et les participants.</p>
+    </a>
+
+    <article class="card module-card">
+        <h3>Validation</h3>
+        <p>Contrôler la qualité, approuver ou rejeter les soumissions.</p>
+    </article>
+
+    <article class="card module-card">
+        <h3>Reporting</h3>
+        <p>Produire des rapports consolidés et des tableaux de bord.</p>
+    </article>
+
+    <article class="card module-card">
+        <h3>Notifications</h3>
+        <p>Envoyer des alertes et informer les utilisateurs concernés.</p>
+    </article>
+</section>
+{% endblock %}

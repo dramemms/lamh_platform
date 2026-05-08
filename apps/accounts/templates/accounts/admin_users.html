@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Administration des utilisateurs{% endblock %}
+
+{% block content %}
+
+<style>
+.admin-page {
+    padding: 22px;
+    background: #f3f6f9;
+    min-height: 100vh;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.admin-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0b1f3a;
+}
+
+.admin-subtitle {
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.btn-primary {
+    background: #7b1f28;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #641923;
+    color: white;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.kpi-card {
+    background: white;
+    padding: 18px;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    border-left: 5px solid #7b1f28;
+}
+
+.kpi-label {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.kpi-value {
+    font-size: 30px;
+    font-weight: 900;
+    color: #0b1f3a;
+    margin-top: 8px;
+}
+
+.filter-card {
+    background: white;
+    padding: 16px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+
+.filter-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.table-card {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: #0b1f3a;
+    color: white;
+    padding: 12px;
+    font-size: 13px;
+    text-align: left;
+}
+
+.admin-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+.badge {
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.badge-green {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-red {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-orange {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.badge-blue {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.action-links a {
+    margin-right: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.edit-link {
+    color: #1d4ed8;
+}
+
+.reset-link {
+    color: #b45309;
+}
+
+.lock-link {
+    color: #991b1b;
+}
+
+@media(max-width: 1000px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="admin-page">
+
+    <div class="admin-header">
+        <div>
+            <div class="admin-title">Gestion des utilisateurs</div>
+            <div class="admin-subtitle">
+                Administration des comptes, rôles, accès et sécurité LAMH Platform
+            </div>
+        </div>
+
+        <a href="{% url 'admin_user_create' %}" class="btn-primary">
+    + Créer un utilisateur
+</a>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Utilisateurs actifs</div>
+            <div class="kpi-value">{{ total_active }}</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Comptes verrouillés</div>
+            <div class="kpi-value">{{ total_locked }}</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Mot de passe à changer</div>
+            <div class="kpi-value">{{ total_must_change }}</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Administrateurs</div>
+            <div class="kpi-value">{{ total_admins }}</div>
+        </div>
+    </div>
+
+    <div class="filter-card">
+        <form method="get" class="filter-form">
+
+            <div class="form-group">
+                <label>Recherche</label>
+                <input type="text" name="q" class="form-control"
+                       placeholder="Nom, email, username..."
+                       value="{{ request.GET.q }}">
+            </div>
+
+            <div class="form-group">
+                <label>Rôle</label>
+                <select name="role" class="form-control">
+                    <option value="">Tous</option>
+                    {% for value,label in role_choices %}
+                        <option value="{{ value }}" {% if request.GET.role == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Statut</label>
+                <select name="status" class="form-control">
+                    <option value="">Tous</option>
+                    <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>Actif</option>
+                    <option value="inactive" {% if request.GET.status == "inactive" %}selected{% endif %}>Inactif</option>
+                    <option value="locked" {% if request.GET.status == "locked" %}selected{% endif %}>Verrouillé</option>
+                    <option value="must_change" {% if request.GET.status == "must_change" %}selected{% endif %}>Mot de passe à changer</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Région</label>
+                <select name="region" class="form-control">
+                    <option value="">Toutes</option>
+                    {% for region in regions %}
+                        <option value="{{ region.id }}" {% if request.GET.region == region.id|stringformat:"s" %}selected{% endif %}>
+                            {{ region.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn-primary">Appliquer</button>
+        </form>
+    </div>
+
+    <div class="table-card">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Email</th>
+                    <th>Nom complet</th>
+                    <th>Rôle</th>
+                    <th>Zone</th>
+                    <th>Sécurité</th>
+                    <th>Statut</th>
+                    <th>Dernière connexion</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><strong>{{ user.username }}</strong></td>
+                    <td>{{ user.email|default:"-" }}</td>
+                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                    <td>
+                        <span class="badge badge-blue">
+                            {{ user.get_role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if user.region %}
+                            {{ user.region.name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.must_change_password %}
+                            <span class="badge badge-orange">À changer</span>
+                        {% else %}
+                            <span class="badge badge-green">OK</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_account_locked %}
+                            <span class="badge badge-red">Verrouillé</span>
+                        {% elif user.is_active %}
+                            <span class="badge badge-green">Actif</span>
+                        {% else %}
+                            <span class="badge badge-red">Inactif</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.last_login %}
+                            {{ user.last_login|date:"d/m/Y H:i" }}
+                        {% else %}
+                            Jamais
+                        {% endif %}
+                    </td>
+                    <td class="action-links">
+
+    <a href="{% url 'admin_user_edit' user.id %}" class="edit-link">
+    Modifier
+</a>
+
+    <a href="{% url 'admin_user_reset_password' user.id %}"
+       class="reset-link">
+       Réinitialiser
+    </a>
+
+    {% if user.is_active %}
+        <a href="{% url 'admin_user_deactivate' user.id %}"
+           class="lock-link">
+           Désactiver
+        </a>
+    {% else %}
+        <a href="{% url 'admin_user_activate' user.id %}"
+           class="edit-link">
+           Activer
+        </a>
+    {% endif %}
+
+</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align:center; padding:25px;">
+                        Aucun utilisateur trouvé.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

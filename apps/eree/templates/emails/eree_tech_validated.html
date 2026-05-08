@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial;">
+
+<p>Bonjour,</p>
+
+<p>
+L'activité EREE ci-dessous a été validée techniquement et attend une validation programme.
+</p>
+
+<ul>
+    <li><strong>Référence :</strong> {{ session.reference }}</li>
+    <li><strong>Titre :</strong> {{ session.title }}</li>
+    <li><strong>Organisation :</strong> {{ session.organisation }}</li>
+</ul>
+
+<p>
+<a href="{{ detail_url }}" 
+   style="background:#2563eb;color:white;padding:10px 18px;
+          text-decoration:none;border-radius:6px;">
+    👉 Voir le rapport
+</a>
+</p>
+
+<p>Cordialement,<br>LAMH Platform</p>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Workflow victime{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card shadow-sm p-4">
+    <h3>{{ title|default:"Workflow victime" }} : {{ victim.victim_id }}</h3>
+
+    <form method="post" class="mt-3">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label">Motif du retour</label>
+        {{ form.reason }}
+      </div>
+
+      <button type="submit" class="btn btn-danger">
+        Valider
+      </button>
+
+      <a href="{% url 'victim_detail' victim.pk %}" class="btn btn-secondary">
+        Annuler
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

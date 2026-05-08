@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Créer un groupe LAMH{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="form-card">
+        <h1>Créer un groupe d’accès</h1>
+        <p>Définir les utilisateurs, les zones géographiques et les modules accessibles.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+
+            <button type="submit" class="btn btn-primary">
+                Créer le groupe
+            </button>
+
+            <a href="{% url 'admin_groups' %}" class="btn btn-secondary">
+                Annuler
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

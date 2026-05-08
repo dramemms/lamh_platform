@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Formulaire Assistance Victimes{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:30px;">
+    <h1>Assistance aux victimes</h1>
+
+    <iframe 
+        src="{{ KOBO_ASSISTANCE_FORM_URL|default:'https://kf.kobotoolbox.org/x/TON_CODE_FORMULAIRE' }}"
+        width="100%" 
+        height="850"
+        style="border:1px solid #ddd; border-radius:12px;">
+    </iframe>
+</div>
+{% endblock %}

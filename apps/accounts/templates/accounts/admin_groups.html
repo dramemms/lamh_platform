@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Groupes utilisateurs{% endblock %}
+
+{% block content %}
+
+<div class="admin-page">
+
+    <!-- HEADER -->
+    <div class="admin-header">
+
+        <div>
+            <div class="admin-title">
+                Groupes utilisateurs
+            </div>
+
+            <div class="admin-subtitle">
+                Gestion des groupes d’accès, utilisateurs, zones et modules LAMH
+            </div>
+        </div>
+
+        <div class="header-actions">
+
+            <a href="{% url 'admin_users' %}"
+               class="btn-secondary">
+                ← Retour utilisateurs
+            </a>
+
+            <a href="{% url 'admin_group_create' %}"
+               class="btn-primary">
+                + Créer un groupe
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- TABLE -->
+    <div class="table-card">
+
+        <table class="admin-table">
+
+            <thead>
+                <tr>
+                    <th>Groupe</th>
+                    <th>Utilisateurs</th>
+                    <th>Zones</th>
+                    <th>Modules</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for access in groups %}
+
+                <tr>
+
+                    <!-- NOM GROUPE -->
+                    <td>
+                        <strong>
+                            {{ access.group.name }}
+                        </strong>
+                    </td>
+
+
+                    <!-- UTILISATEURS -->
+                    <td>
+
+                        {% for user in access.group.user_set.all %}
+
+                            <span class="badge badge-blue">
+                                {{ user.username }}
+                            </span>
+
+                        {% empty %}
+
+                            <span class="text-muted">
+                                Aucun utilisateur
+                            </span>
+
+                        {% endfor %}
+
+                    </td>
+
+
+                    <!-- ZONES -->
+                    <td>
+
+                        {% if access.can_view_all_regions %}
+
+                            <span class="badge badge-green">
+                                Toutes les régions
+                            </span>
+
+                        {% else %}
+
+                            {% for region in access.regions.all %}
+
+                                <span class="badge badge-orange">
+                                    {{ region.name }}
+                                </span>
+
+                            {% empty %}
+
+                                <span class="text-muted">
+                                    -
+                                </span>
+
+                            {% endfor %}
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- MODULES -->
+                    <td>
+
+                        {% if access.can_access_accidents %}
+                            <span class="badge badge-blue">
+                                Accidents
+                            </span>
+                        {% endif %}
+
+                        {% if access.can_access_victims %}
+                            <span class="badge badge-blue">
+                                Victimes
+                            </span>
+                        {% endif %}
+
+                        {% if access.can_access_eree %}
+                            <span class="badge badge-blue">
+                                EREE
+                            </span>
+                        {% endif %}
+
+                        {% if access.can_access_reporting %}
+                            <span class="badge badge-green">
+                                Reporting
+                            </span>
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- ACTIONS -->
+                    <td class="actions-cell">
+
+                        {% if access.pk %}
+
+                            <a href="{% url 'admin_group_edit' access.pk %}"
+                               class="edit-link">
+                                Modifier
+                            </a>
+
+                            <a href="{% url 'admin_group_delete' access.pk %}"
+                               class="lock-link"
+                               onclick="return confirm('Voulez-vous vraiment supprimer ce groupe ?');">
+                                Supprimer
+                            </a>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+                    <td colspan="5"
+                        style="text-align:center; padding:25px;">
+
+                        Aucun groupe trouvé.
+
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

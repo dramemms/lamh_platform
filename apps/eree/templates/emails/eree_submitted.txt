@@ -1,0 +1,14 @@
+Bonjour,
+
+Une activité EREE a été soumise et attend une validation technique.
+
+Référence : {{ session.reference }}
+Titre : {{ session.title|default:"-" }}
+Organisation : {{ session.organisation|default:"-" }}
+Région : {{ session.region.name|default:"-" }}
+Date session : {{ session.session_date|date:"d/m/Y"|default:"-" }}
+
+Consulter : {{ detail_url }}
+
+Cordialement,
+LAMH Platform

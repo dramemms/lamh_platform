@@ -1,0 +1,13 @@
+Bonjour,
+
+L'activité EREE ci-dessous a été retournée pour correction.
+
+Référence : {{ session.reference }}
+Titre : {{ session.title|default:"-" }}
+
+Motif / commentaire : {{ comment|default:"-" }}
+
+Consulter : {{ detail_url }}
+
+Cordialement,
+LAMH Platform

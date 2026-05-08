@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard LAMH PDF</title>
+
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.2cm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #111827;
+        }
+
+        h1 {
+            color: #991b1b;
+            border-bottom: 3px solid #991b1b;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        h2 {
+            color: #991b1b;
+            margin-top: 28px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 6px;
+        }
+
+        .meta {
+            margin-bottom: 18px;
+            color: #374151;
+        }
+
+        .cards {
+            display: table;
+            width: 100%;
+            margin: 16px 0 24px;
+        }
+
+        .card {
+            display: table-cell;
+            border: 1px solid #ddd;
+            padding: 14px;
+            width: 25%;
+        }
+
+        .label {
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        .value {
+            font-size: 26px;
+            font-weight: bold;
+            margin-top: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            margin-bottom: 20px;
+        }
+
+        th {
+            background: #991b1b;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-size: 11px;
+        }
+
+        td {
+            border: 1px solid #ddd;
+            padding: 7px;
+            font-size: 11px;
+        }
+
+        .section {
+            page-break-inside: avoid;
+            margin-bottom: 28px;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .footer {
+            margin-top: 25px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>LAMH Platforme — Rapport Dashboard complet</h1>
+
+<p class="meta">Généré le : {{ generated_at|date:"d/m/Y H:i" }}</p>
+
+<div class="cards">
+    <div class="card">
+        <div class="label">Total général</div>
+        <div class="value">{{ total_records }}</div>
+    </div>
+
+    <div class="card">
+        <div class="label">Accidents</div>
+        <div class="value">{{ accidents_count }}</div>
+    </div>
+
+    <div class="card">
+        <div class="label">Victimes</div>
+        <div class="value">{{ victims_count }}</div>
+    </div>
+
+    <div class="card">
+        <div class="label">EREE</div>
+        <div class="value">{{ eree_count }}</div>
+    </div>
+</div>
+
+<h2>Résumé général par module</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Module</th>
+            <th>Total</th>
+            <th>Approuvés</th>
+            <th>En attente / autres statuts</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Accidents</td>
+            <td>{{ accidents_count }}</td>
+            <td>{{ accidents_approved }}</td>
+            <td>{{ accidents_pending }}</td>
+        </tr>
+        <tr>
+            <td>Victimes</td>
+            <td>{{ victims_count }}</td>
+            <td>{{ victims_approved }}</td>
+            <td>{{ victims_pending }}</td>
+        </tr>
+        <tr>
+            <td>EREE</td>
+            <td>{{ eree_count }}</td>
+            <td>{{ eree_approved }}</td>
+            <td>{{ eree_pending }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<div class="section">
+    <h1>1. Dashboard Accidents</h1>
+
+    <div class="cards">
+        <div class="card">
+            <div class="label">Total accidents</div>
+            <div class="value">{{ accidents_count }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Approuvés</div>
+            <div class="value">{{ accidents_approved }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">En attente</div>
+            <div class="value">{{ accidents_pending }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Taux approbation</div>
+            <div class="value">{{ accidents_approval_rate }}%</div>
+        </div>
+    </div>
+
+    <h2>Répartition des accidents par statut</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Statut</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in accidents_by_status %}
+            <tr>
+                <td>{{ item.status }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Répartition des accidents par région</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Région</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in accidents_by_region %}
+            <tr>
+                <td>{{ item.region__name|default:"Non renseigné" }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="page-break"></div>
+
+<div class="section">
+    <h1>2. Dashboard Victimes</h1>
+
+    <div class="cards">
+        <div class="card">
+            <div class="label">Total victimes</div>
+            <div class="value">{{ victims_count }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Approuvées</div>
+            <div class="value">{{ victims_approved }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">En attente</div>
+            <div class="value">{{ victims_pending }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Taux approbation</div>
+            <div class="value">{{ victims_approval_rate }}%</div>
+        </div>
+    </div>
+
+    <h2>Répartition des victimes par statut workflow</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Statut workflow</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in victims_by_status %}
+            <tr>
+                <td>{{ item.status }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Répartition des victimes par genre</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Genre</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in victims_by_gender %}
+            <tr>
+                <td>{{ item.victim_sex|default:"Non renseigné" }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Répartition des victimes par statut de victime</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Statut de victime</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in victims_by_victim_status %}
+            <tr>
+                <td>{{ item.victim_status|default:"Non renseigné" }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="page-break"></div>
+
+<div class="section">
+    <h1>3. Dashboard EREE</h1>
+
+    <div class="cards">
+        <div class="card">
+            <div class="label">Total sessions EREE</div>
+            <div class="value">{{ eree_count }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Approuvées</div>
+            <div class="value">{{ eree_approved }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">En attente</div>
+            <div class="value">{{ eree_pending }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Participants</div>
+            <div class="value">{{ eree_participants_total }}</div>
+        </div>
+    </div>
+
+    <h2>Répartition EREE par statut workflow</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Statut workflow</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in eree_by_status %}
+            <tr>
+                <td>{{ item.status }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Répartition EREE par organisation</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Organisation</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in eree_by_organisation %}
+            <tr>
+                <td>{{ item.organisation|default:"Non renseigné" }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Répartition EREE par région</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Région</th>
+                <th>Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in eree_by_region %}
+            <tr>
+                <td>{{ item.region__name|default:"Non renseigné" }}</td>
+                <td>{{ item.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2">Aucune donnée disponible</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="footer">
+    LAMH Platforme — DCA Mali · Rapport généré automatiquement
+</div>
+
+</body>
+</html>

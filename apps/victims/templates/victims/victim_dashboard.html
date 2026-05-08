@@ -1,0 +1,660 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard Victimes - LAMH Plateforme{% endblock %}
+
+{% block content %}
+
+<style>
+body { background:#eef1f4; }
+
+.victim-page {
+  padding: 14px 18px;
+  height: auto;
+}
+
+.dashboard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-header-title {
+  font-size: 30px;
+  font-weight: 900;
+  color: #0b1f3a;
+  letter-spacing: .5px;
+}
+
+.dashboard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.map-btn,
+.export-image-btn {
+  background: #7b1f28;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0,0,0,.14);
+  border: none;
+  cursor: pointer;
+}
+
+.export-image-btn {
+  background: #198754;
+}
+
+.map-btn:hover { background: #641821; color: #fff; }
+.export-image-btn:hover { background: #146c43; color: #fff; }
+
+.dashboard-red-line {
+  height: 5px;
+  background: #7b1f28;
+  margin: 10px 0 12px;
+}
+
+.victim-dashboard {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 14px;
+}
+
+.filter-panel {
+  background: #fff;
+  padding: 16px 12px;
+  min-height: 650px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  border: 1px solid #e5e5e5;
+}
+
+.filter-logo { text-align: center; margin-bottom: 26px; }
+.filter-logo img { max-width: 140px; }
+
+.filter-group { margin-bottom: 16px; }
+
+.filter-group label {
+  display: block;
+  color: #a12d37;
+  font-weight: 800;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.filter-group select {
+  width: 100%;
+  height: 31px;
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 4px;
+  font-size: 12px;
+}
+
+.reset-btn {
+  display: block;
+  width: 145px;
+  margin: 12px auto 0;
+  border: none;
+  background: #f3f3ef;
+  padding: 10px;
+  font-weight: 800;
+  color: #555;
+  border-radius: 4px;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.apply-btn { background: #7b1f28; color: #fff; }
+.apply-btn:hover { background: #641821; color: #fff; }
+
+.dashboard-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.1fr;
+  grid-template-rows: 100px 260px 260px;
+  gap: 10px;
+  height: auto;
+}
+
+.kpi-card,
+.chart-card {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  border: 1px solid #e5e5e5;
+  overflow: hidden;
+}
+
+.kpi-card {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px;
+  align-items: center;
+  padding: 10px 18px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.kpi-card img {
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
+}
+
+.kpi-center { text-align: center; }
+
+.kpi-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #555;
+  white-space: nowrap;
+  margin-bottom: 5px;
+}
+
+.kpi-value {
+  font-size: 25px;
+  font-weight: 900;
+  color: #d96373;
+  line-height: 1;
+}
+
+.kpi-right {
+  text-align: right;
+  font-size: 21px;
+  font-weight: 900;
+  color: #222;
+  white-space: nowrap;
+}
+
+.chart-card {
+  padding: 6px 10px 10px;
+  height: 260px;
+  position: relative;
+}
+
+.chart-title {
+  text-align: center;
+  font-size: 13px;
+  color: #555;
+  font-weight: 700;
+  margin-bottom: 2px;
+  height: 20px;
+  line-height: 1.15;
+}
+
+.chart-card canvas {
+  width: 100% !important;
+  height: 225px !important;
+}
+
+.profession-card {
+  grid-column: 3;
+  grid-row: 2 / span 2;
+  height: 530px;
+}
+
+.profession-card canvas { height: 495px !important; }
+
+@media(max-width: 1100px) {
+  .dashboard-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .victim-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .profession-card {
+    grid-column: auto;
+    grid-row: auto;
+    height: 320px;
+  }
+
+  .profession-card canvas {
+    height: 285px !important;
+  }
+}
+</style>
+
+<div class="victim-page" id="dashboard-content">
+
+  <div class="dashboard-top">
+    <div class="dashboard-header-title">Dashboard Victimes LAMH - DCA Mali</div>
+
+    <div class="dashboard-actions">
+      <a href="{% url 'victim_cercle_heatmap' %}" class="map-btn">
+        Voir la carte des victimes par cercle
+      </a>
+
+      <button type="button" onclick="exportVictimDashboardImage()" class="export-image-btn">
+        Exporter le dashboard en image
+      </button>
+    </div>
+  </div>
+
+  <div class="dashboard-red-line"></div>
+
+  <div class="victim-dashboard">
+
+    <aside class="filter-panel">
+      <form method="get">
+
+        <div class="filter-logo">
+          <img src="{% static 'img/dca_logo.png' %}" alt="DCA">
+        </div>
+
+        <div class="filter-group">
+          <label>Organisation</label>
+          <select name="organisation">
+            <option value="">Tout</option>
+            {% for org in organisations %}
+              <option value="{{ org }}" {% if selected_organisation|lower == org %}selected{% endif %}>
+                {{ org|upper }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Type d'accident</label>
+          <select name="accident_type">
+            <option value="">Tout</option>
+            {% for t in accident_types %}
+              <option value="{{ t }}" {% if selected_accident_type == t %}selected{% endif %}>
+                {{ t }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Région</label>
+          <select name="region">
+            <option value="">Tout</option>
+            {% for r in regions %}
+              <option value="{{ r.region_id }}" {% if selected_region == r.region_id|stringformat:"s" %}selected{% endif %}>
+                {{ r.region__name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Cercle</label>
+          <select name="cercle">
+            <option value="">Tout</option>
+            {% for c in cercles %}
+              <option value="{{ c.cercle_id }}" {% if selected_cercle == c.cercle_id|stringformat:"s" %}selected{% endif %}>
+                {{ c.cercle__name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Commune</label>
+          <select name="commune">
+            <option value="">Tout</option>
+            {% for c in communes %}
+              <option value="{{ c.commune_id }}" {% if selected_commune == c.commune_id|stringformat:"s" %}selected{% endif %}>
+                {{ c.commune__name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Période</label>
+          <select name="periode">
+            <option value="">Tout</option>
+            {% for y in years %}
+              <option value="{{ y.year }}" {% if selected_periode == y.year|stringformat:"s" %}selected{% endif %}>
+                {{ y.year }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="reset-btn apply-btn">Appliquer</button>
+        <a href="{% url 'victim_dashboard' %}" class="reset-btn">Reset</a>
+
+      </form>
+    </aside>
+
+    <main class="dashboard-main">
+
+      <section class="kpi-card">
+        <img src="{% static 'img/victimes.png' %}" alt="Victimes">
+        <div class="kpi-center">
+          <div class="kpi-title">Total victimes</div>
+          <div class="kpi-value">{{ total }}</div>
+        </div>
+        <div></div>
+      </section>
+
+      <section class="kpi-card">
+        <img src="{% static 'img/victim_h.png' %}" alt="Masculin">
+        <div class="kpi-center">
+          <div class="kpi-title">Masculin</div>
+          <div class="kpi-value">{{ masculin }}</div>
+        </div>
+        <div class="kpi-right">{{ masculin_pct }}%</div>
+      </section>
+
+      <section class="kpi-card">
+        <img src="{% static 'img/victim_f.png' %}" alt="Féminin">
+        <div class="kpi-center">
+          <div class="kpi-title">Féminin</div>
+          <div class="kpi-value">{{ feminin }}</div>
+        </div>
+        <div class="kpi-right">{{ feminin_pct }}%</div>
+      </section>
+
+      <section class="chart-card">
+        <div class="chart-title">Victimes par type d'accident</div>
+        <canvas id="accidentTypeChart"></canvas>
+      </section>
+
+      <section class="chart-card">
+        <div class="chart-title">Statut / type des victimes</div>
+        <canvas id="statusChart"></canvas>
+      </section>
+
+      <section class="chart-card profession-card">
+        <div class="chart-title">Profession des victimes avant l'incident</div>
+        <canvas id="professionChart"></canvas>
+      </section>
+
+      <section class="chart-card">
+        <div class="chart-title">Catégorie de victimes</div>
+        <canvas id="categoryChart"></canvas>
+      </section>
+
+      <section class="chart-card">
+        <div class="chart-title">Tranche d'âge des victimes</div>
+        <canvas id="ageChart"></canvas>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const accidentTypes = {{ by_accident_type_json|safe }};
+const statuses = {{ by_status_json|safe }};
+const categories = {{ by_category_json|safe }};
+const ages = {{ age_groups_json|safe }};
+const professions = {{ professions_json|safe }};
+
+const red = "#a8323d";
+const blue = "#1e90f2";
+const darkBlue = "#17239b";
+const orange = "#ed6a35";
+const purple = "#7a007d";
+const pink = "#db3fa0";
+const violet = "#7652bf";
+const yellow = "#e3b900";
+const green = "#0ead50";
+
+const valueLabelPlugin = {
+  id: "valueLabelPlugin",
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== "bar") return;
+
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    const data = chart.data.datasets[0].data;
+
+    ctx.save();
+    ctx.font = "bold 12px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+
+    meta.data.forEach((bar, index) => {
+      const value = data[index];
+      if (value && value > 0) {
+        ctx.fillText(value, bar.x - 8, bar.y);
+      }
+    });
+
+    ctx.restore();
+  }
+};
+
+const percentLabelPlugin = {
+  id: "percentLabelPlugin",
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== "pie") return;
+
+    const { ctx } = chart;
+    const data = chart.data.datasets[0].data;
+    const total = data.reduce((a, b) => a + b, 0);
+    const meta = chart.getDatasetMeta(0);
+
+    if (!total) return;
+
+    ctx.save();
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#444";
+    ctx.strokeStyle = "#999";
+    ctx.lineWidth = 1;
+
+    meta.data.forEach((arc, index) => {
+      const value = data[index];
+      if (!value || value <= 0) return;
+
+      const percent = ((value / total) * 100).toFixed(1).replace(".", ",") + "%";
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+
+      const x = arc.x;
+      const y = arc.y;
+      const radius = arc.outerRadius;
+
+      const x1 = x + Math.cos(angle) * radius;
+      const y1 = y + Math.sin(angle) * radius;
+      const x2 = x + Math.cos(angle) * (radius + 14);
+      const y2 = y + Math.sin(angle) * (radius + 14);
+      const x3 = x2 + (Math.cos(angle) >= 0 ? 20 : -20);
+      const y3 = y2;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineTo(x3, y3);
+      ctx.stroke();
+
+      ctx.textAlign = Math.cos(angle) >= 0 ? "left" : "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(percent, x3 + (Math.cos(angle) >= 0 ? 4 : -4), y3);
+    });
+
+    ctx.restore();
+  }
+};
+
+new Chart(document.getElementById("accidentTypeChart"), {
+  type: "bar",
+  data: {
+    labels: accidentTypes.map(x => x.accident_type_label || "Non défini"),
+    datasets: [{
+      data: accidentTypes.map(x => x.total),
+      backgroundColor: red,
+      barThickness: 30
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: "y",
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, grid: { display: false }, ticks: { display: false } },
+      y: { grid: { display: false } }
+    }
+  },
+  plugins: [valueLabelPlugin]
+});
+
+new Chart(document.getElementById("statusChart"), {
+  type: "pie",
+  data: {
+    labels: statuses.map(x => x.victim_type || "Non défini"),
+    datasets: [{
+      data: statuses.map(x => x.total),
+      backgroundColor: [blue, darkBlue, orange, purple, pink]
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 15, bottom: 15, left: 25, right: 25 } },
+    plugins: {
+      legend: {
+        position: "right",
+        labels: { boxWidth: 10, font: { size: 11 } }
+      }
+    }
+  },
+  plugins: [percentLabelPlugin]
+});
+
+new Chart(document.getElementById("categoryChart"), {
+  type: "bar",
+  data: {
+    labels: Object.keys(categories),
+    datasets: [{
+      data: Object.values(categories),
+      backgroundColor: red,
+      barThickness: 27
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: "y",
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, grid: { display: false }, ticks: { display: false } },
+      y: { grid: { display: false } }
+    }
+  },
+  plugins: [valueLabelPlugin]
+});
+
+new Chart(document.getElementById("ageChart"), {
+  type: "pie",
+  data: {
+    labels: Object.keys(ages),
+    datasets: [{
+      data: Object.values(ages),
+      backgroundColor: [blue, darkBlue, orange, purple, pink, violet, yellow]
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 15, bottom: 15, left: 25, right: 25 } },
+    plugins: {
+      legend: {
+        position: "right",
+        labels: { boxWidth: 10, font: { size: 11 } }
+      }
+    }
+  },
+  plugins: [percentLabelPlugin]
+});
+
+new Chart(document.getElementById("professionChart"), {
+  type: "treemap",
+  data: {
+    datasets: [{
+      tree: professions.map(x => ({
+        profession: x.profession_label || "Non renseigné",
+        value: x.total
+      })),
+      key: "value",
+      groups: ["profession"],
+      spacing: 1,
+      borderWidth: 1,
+      borderColor: "#ffffff",
+      backgroundColor(ctx) {
+        const colors = [
+          blue, darkBlue, orange, purple,
+          pink, violet, yellow, green,
+          "#10837f", "#d94c5f", "#25b7f0", "#f89a50"
+        ];
+        return colors[ctx.dataIndex % colors.length];
+      },
+      labels: {
+        display: true,
+        color: "#ffffff",
+        font: { size: 13, weight: "bold" },
+        formatter(ctx) {
+          const item = ctx.raw._data;
+          return item.profession;
+        }
+      }
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } }
+  }
+});
+
+function exportVictimDashboardImage() {
+  const dashboard = document.getElementById("dashboard-content");
+  const actions = document.querySelector(".dashboard-actions");
+
+  if (actions) {
+    actions.style.display = "none";
+  }
+
+  setTimeout(function(){
+    html2canvas(dashboard, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      windowWidth: document.body.scrollWidth,
+      windowHeight: document.body.scrollHeight,
+      scrollY: -window.scrollY
+    }).then(function(canvas) {
+      const link = document.createElement("a");
+      link.download = "dashboard_victimes_lamh.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      if (actions) {
+        actions.style.display = "flex";
+      }
+    }).catch(function(error) {
+      if (actions) {
+        actions.style.display = "flex";
+      }
+      console.error("Erreur export image :", error);
+      alert("Erreur lors de l'export image.");
+    });
+  }, 400);
+}
+
+</script>
+
+{% endblock %}

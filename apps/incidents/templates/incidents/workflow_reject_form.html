@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ action_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} mb-3">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm border-0" style="max-width: 900px; margin: 0 auto; border-radius: 18px;">
+        <div class="card-body p-4">
+            <h2 class="mb-2 fw-bold">{{ action_title }} : {{ accident.reference }}</h2>
+            <p class="text-muted mb-4">{{ action_subtitle }}</p>
+
+            <div class="mb-3">
+                <strong>Titre :</strong> {{ accident.title }}
+            </div>
+
+            <div class="mb-4">
+                <strong>Statut actuel :</strong>
+                <span class="badge bg-secondary">{{ accident.get_status_display }}</span>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="{{ form.rejection_reason.id_for_label }}" class="form-label fw-semibold">
+                        {{ form.rejection_reason.label }}
+                    </label>
+                    {{ form.rejection_reason }}
+                    {% if form.rejection_reason.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.rejection_reason.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn btn-danger px-4">
+                        Valider le rejet
+                    </button>
+                    <a href="{% url cancel_url_name accident.pk %}" class="btn btn-outline-secondary">
+                        Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

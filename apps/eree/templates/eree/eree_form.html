@@ -1,0 +1,617 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title|default:"Formulaire EREE" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-page {
+        max-width: 1380px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        margin-bottom: 22px;
+    }
+
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 18px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .field-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px 18px;
+    }
+
+    .field-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 18px;
+    }
+
+    .field-box {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .field-box.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .field-box label {
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+
+    .field-box input,
+    .field-box select,
+    .field-box textarea {
+        width: 100%;
+    }
+
+    .error-text {
+        color: #b91c1c;
+        font-size: .9rem;
+        margin-top: 6px;
+    }
+
+    .help-text {
+        color: #64748b;
+        font-size: .85rem;
+        margin-top: 5px;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    .participants-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .participants-table th,
+    .participants-table td {
+        border: 1px solid #e5e7eb;
+        padding: 10px 12px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .participants-table th {
+        background: #f8fafc;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .participants-table td label {
+        display: none;
+    }
+
+    .participants-table input {
+        width: 100%;
+        min-width: 90px;
+    }
+
+    .top-actions,
+    .bottom-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .non-field-errors {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 18px;
+    }
+
+    @media (max-width: 1100px) {
+        .field-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 760px) {
+        .field-grid,
+        .field-grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 form-page">
+
+    <div class="top-actions mb-3">
+        <a href="{% if session %}{% url 'eree_detail' session.pk %}{% else %}{% url 'eree_list' %}{% endif %}" class="btn btn-outline-secondary">
+            ← Retour
+        </a>
+    </div>
+
+    <h1 class="mb-4">{{ page_title|default:"Formulaire EREE" }}</h1>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="non-field-errors">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <!-- Identification -->
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Identification</div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
+                        {{ form.reference }}
+                        {% for error in form.reference.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                        {{ form.title }}
+                        {% for error in form.title.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    {% if form.kobo_submission_id %}
+                    <div class="field-box">
+                        <label for="{{ form.kobo_submission_id.id_for_label }}">{{ form.kobo_submission_id.label }}</label>
+                        {{ form.kobo_submission_id }}
+                        {% for error in form.kobo_submission_id.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if form.kobo_uuid %}
+                    <div class="field-box">
+                        <label for="{{ form.kobo_uuid.id_for_label }}">{{ form.kobo_uuid.label }}</label>
+                        {{ form.kobo_uuid }}
+                        {% for error in form.kobo_uuid.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if form.submitted_at_kobo %}
+                    <div class="field-box">
+                        <label for="{{ form.submitted_at_kobo.id_for_label }}">{{ form.submitted_at_kobo.label }}</label>
+                        {{ form.submitted_at_kobo }}
+                        {% for error in form.submitted_at_kobo.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations générales / Weekly -->
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Informations générales / Weekly</div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label for="{{ form.reported_by.id_for_label }}">{{ form.reported_by.label }}</label>
+                        {{ form.reported_by }}
+                        {% for error in form.reported_by.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.week_number.id_for_label }}">{{ form.week_number.label }}</label>
+                        {{ form.week_number }}
+                        {% for error in form.week_number.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.month_name.id_for_label }}">{{ form.month_name.label }}</label>
+                        {{ form.month_name }}
+                        {% for error in form.month_name.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.week_from.id_for_label }}">{{ form.week_from.label }}</label>
+                        {{ form.week_from }}
+                        {% for error in form.week_from.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.week_to.id_for_label }}">{{ form.week_to.label }}</label>
+                        {{ form.week_to }}
+                        {% for error in form.week_to.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.year.id_for_label }}">{{ form.year.label }}</label>
+                        {{ form.year }}
+                        {% for error in form.year.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.organisation.id_for_label }}">{{ form.organisation.label }}</label>
+                        {{ form.organisation }}
+                        {% for error in form.organisation.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box full-width">
+                        <label for="{{ form.narrative_description.id_for_label }}">{{ form.narrative_description.label }}</label>
+                        {{ form.narrative_description }}
+                        {% for error in form.narrative_description.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session et localisation -->
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Session et localisation</div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label for="{{ form.session_date.id_for_label }}">{{ form.session_date.label }}</label>
+                        {{ form.session_date }}
+                        {% for error in form.session_date.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.team.id_for_label }}">{{ form.team.label }}</label>
+                        {{ form.team }}
+                        {% for error in form.team.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.session_status.id_for_label }}">{{ form.session_status.label }}</label>
+                        {{ form.session_status }}
+                        {% for error in form.session_status.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.region_code.id_for_label }}">{{ form.region_code.label }}</label>
+                        {{ form.region_code }}
+                        {% for error in form.region_code.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.cercle_code.id_for_label }}">{{ form.cercle_code.label }}</label>
+                        {{ form.cercle_code }}
+                        {% for error in form.cercle_code.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.commune_code.id_for_label }}">{{ form.commune_code.label }}</label>
+                        {{ form.commune_code }}
+                        {% for error in form.commune_code.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.region.id_for_label }}">{{ form.region.label }}</label>
+                        {{ form.region }}
+                        {% for error in form.region.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.cercle.id_for_label }}">{{ form.cercle.label }}</label>
+                        {{ form.cercle }}
+                        {% for error in form.cercle.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.commune.id_for_label }}">{{ form.commune.label }}</label>
+                        {{ form.commune }}
+                        {% for error in form.commune.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.village.id_for_label }}">{{ form.village.label }}</label>
+                        {{ form.village }}
+                        {% for error in form.village.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.location_gps.id_for_label }}">{{ form.location_gps.label }}</label>
+                        {{ form.location_gps }}
+                        {% for error in form.location_gps.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.latitude.id_for_label }}">{{ form.latitude.label }}</label>
+                        {{ form.latitude }}
+                        {% for error in form.latitude.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.longitude.id_for_label }}">{{ form.longitude.label }}</label>
+                        {{ form.longitude }}
+                        {% for error in form.longitude.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.methodology.id_for_label }}">{{ form.methodology.label }}</label>
+                        {{ form.methodology }}
+                        {% for error in form.methodology.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.sensitization_type.id_for_label }}">{{ form.sensitization_type.label }}</label>
+                        {{ form.sensitization_type }}
+                        {% for error in form.sensitization_type.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.civilian_subcategory.id_for_label }}">{{ form.civilian_subcategory.label }}</label>
+                        {{ form.civilian_subcategory }}
+                        {% for error in form.civilian_subcategory.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.humanitarian_org_type.id_for_label }}">{{ form.humanitarian_org_type.label }}</label>
+                        {{ form.humanitarian_org_type }}
+                        {% for error in form.humanitarian_org_type.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.other_precision.id_for_label }}">{{ form.other_precision.label }}</label>
+                        {{ form.other_precision }}
+                        {% for error in form.other_precision.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.funding_type.id_for_label }}">{{ form.funding_type.label }}</label>
+                        {{ form.funding_type }}
+                        {% for error in form.funding_type.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Participants humanitaires -->
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Participants humanitaires</div>
+                <div class="field-grid-2">
+                    <div class="field-box">
+                        <label for="{{ form.humanitarian_male.id_for_label }}">{{ form.humanitarian_male.label }}</label>
+                        {{ form.humanitarian_male }}
+                        {% for error in form.humanitarian_male.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.humanitarian_female.id_for_label }}">{{ form.humanitarian_female.label }}</label>
+                        {{ form.humanitarian_female }}
+                        {% for error in form.humanitarian_female.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Participants PDI -->
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Participants PDI</div>
+                <div class="table-wrap">
+                    <table class="participants-table">
+                        <thead>
+                            <tr>
+                                <th>Catégorie</th>
+                                <th>Garçons / Hommes</th>
+                                <th>Handicap</th>
+                                <th>Filles / Femmes</th>
+                                <th>Handicap</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0-5 ans</td>
+                                <td>{{ form.pdi_boys_0_5 }}</td>
+                                <td>{{ form.pdi_boys_0_5_dis }}</td>
+                                <td>{{ form.pdi_girls_0_5 }}</td>
+                                <td>{{ form.pdi_girls_0_5_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>6-14 ans</td>
+                                <td>{{ form.pdi_boys_6_14 }}</td>
+                                <td>{{ form.pdi_boys_6_14_dis }}</td>
+                                <td>{{ form.pdi_girls_6_14 }}</td>
+                                <td>{{ form.pdi_girls_6_14_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>15-17 ans</td>
+                                <td>{{ form.pdi_boys_15_17 }}</td>
+                                <td>{{ form.pdi_boys_15_17_dis }}</td>
+                                <td>{{ form.pdi_girls_15_17 }}</td>
+                                <td>{{ form.pdi_girls_15_17_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>18-24 ans</td>
+                                <td>{{ form.pdi_men_18_24 }}</td>
+                                <td>{{ form.pdi_men_18_24_dis }}</td>
+                                <td>{{ form.pdi_women_18_24 }}</td>
+                                <td>{{ form.pdi_women_18_24_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>25-49 ans</td>
+                                <td>{{ form.pdi_men_25_49 }}</td>
+                                <td>{{ form.pdi_men_25_49_dis }}</td>
+                                <td>{{ form.pdi_women_25_49 }}</td>
+                                <td>{{ form.pdi_women_25_49_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>50-59 ans</td>
+                                <td>{{ form.pdi_men_50_59 }}</td>
+                                <td>{{ form.pdi_men_50_59_dis }}</td>
+                                <td>{{ form.pdi_women_50_59 }}</td>
+                                <td>{{ form.pdi_women_50_59_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>60+ ans</td>
+                                <td>{{ form.pdi_men_60_plus }}</td>
+                                <td>{{ form.pdi_men_60_plus_dis }}</td>
+                                <td>{{ form.pdi_women_60_plus }}</td>
+                                <td>{{ form.pdi_women_60_plus_dis }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Participants communauté hôte -->
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Participants communauté hôte</div>
+                <div class="table-wrap">
+                    <table class="participants-table">
+                        <thead>
+                            <tr>
+                                <th>Catégorie</th>
+                                <th>Garçons / Hommes</th>
+                                <th>Handicap</th>
+                                <th>Filles / Femmes</th>
+                                <th>Handicap</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0-5 ans</td>
+                                <td>{{ form.ch_boys_0_5 }}</td>
+                                <td>{{ form.ch_boys_0_5_dis }}</td>
+                                <td>{{ form.ch_girls_0_5 }}</td>
+                                <td>{{ form.ch_girls_0_5_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>6-14 ans</td>
+                                <td>{{ form.ch_boys_6_14 }}</td>
+                                <td>{{ form.ch_boys_6_14_dis }}</td>
+                                <td>{{ form.ch_girls_6_14 }}</td>
+                                <td>{{ form.ch_girls_6_14_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>15-17 ans</td>
+                                <td>{{ form.ch_boys_15_17 }}</td>
+                                <td>{{ form.ch_boys_15_17_dis }}</td>
+                                <td>{{ form.ch_girls_15_17 }}</td>
+                                <td>{{ form.ch_girls_15_17_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>18-24 ans</td>
+                                <td>{{ form.ch_men_18_24 }}</td>
+                                <td>{{ form.ch_men_18_24_dis }}</td>
+                                <td>{{ form.ch_women_18_24 }}</td>
+                                <td>{{ form.ch_women_18_24_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>25-49 ans</td>
+                                <td>{{ form.ch_men_25_49 }}</td>
+                                <td>{{ form.ch_men_25_49_dis }}</td>
+                                <td>{{ form.ch_women_25_49 }}</td>
+                                <td>{{ form.ch_women_25_49_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>50-59 ans</td>
+                                <td>{{ form.ch_men_50_59 }}</td>
+                                <td>{{ form.ch_men_50_59_dis }}</td>
+                                <td>{{ form.ch_women_50_59 }}</td>
+                                <td>{{ form.ch_women_50_59_dis }}</td>
+                            </tr>
+                            <tr>
+                                <td>60+ ans</td>
+                                <td>{{ form.ch_men_60_plus }}</td>
+                                <td>{{ form.ch_men_60_plus_dis }}</td>
+                                <td>{{ form.ch_women_60_plus }}</td>
+                                <td>{{ form.ch_women_60_plus_dis }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Qualité et supports -->
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Qualité et supports</div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label for="{{ form.leaflets_adults.id_for_label }}">{{ form.leaflets_adults.label }}</label>
+                        {{ form.leaflets_adults }}
+                        {% for error in form.leaflets_adults.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.leaflets_children.id_for_label }}">{{ form.leaflets_children.label }}</label>
+                        {{ form.leaflets_children }}
+                        {% for error in form.leaflets_children.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.quality_date.id_for_label }}">{{ form.quality_date.label }}</label>
+                        {{ form.quality_date }}
+                        {% for error in form.quality_date.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.quality_team.id_for_label }}">{{ form.quality_team.label }}</label>
+                        {{ form.quality_team }}
+                        {% for error in form.quality_team.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box">
+                        <label for="{{ form.quality_method.id_for_label }}">{{ form.quality_method.label }}</label>
+                        {{ form.quality_method }}
+                        {% for error in form.quality_method.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box full-width">
+                        <label for="{{ form.quality_observations.id_for_label }}">{{ form.quality_observations.label }}</label>
+                        {{ form.quality_observations }}
+                        {% for error in form.quality_observations.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field-box full-width">
+                        <label for="{{ form.difficulties_solutions.id_for_label }}">{{ form.difficulties_solutions.label }}</label>
+                        {{ form.difficulties_solutions }}
+                        {% for error in form.difficulties_solutions.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commentaire -->
+        {% if form.comment %}
+        <div class="card form-card">
+            <div class="card-body">
+                <div class="section-title">Commentaire de modification</div>
+                <div class="field-grid-2">
+                    <div class="field-box full-width">
+                        <label for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                        {{ form.comment }}
+                        {% for error in form.comment.errors %}<div class="error-text">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bottom-actions mt-4">
+            <button type="submit" class="btn btn-primary">
+                {{ submit_label|default:"Enregistrer" }}
+            </button>
+            <a href="{% if session %}{% url 'eree_detail' session.pk %}{% else %}{% url 'eree_list' %}{% endif %}" class="btn btn-outline-secondary">
+                Annuler
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

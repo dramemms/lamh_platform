@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Activer utilisateur{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="confirm-card">
+        <h1>Activer le compte</h1>
+
+        <p>
+            Voulez-vous activer le compte de
+            <strong>{{ user_obj.username }}</strong> ?
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary">Oui, activer</button>
+            <a href="{% url 'admin_users' %}" class="btn-secondary">Annuler</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

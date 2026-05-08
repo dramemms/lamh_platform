@@ -1,0 +1,456 @@
+from django.conf import settings
+from django.core.mail import send_mail
+from django.urls import reverse
+
+from .recipients import (
+    get_tech_emails,
+    get_program_emails,
+    get_admin_emails,
+)
+
+
+def build_url(path):
+    base_url = getattr(settings, "SITE_URL", "http://127.0.0.1:8000")
+    return f"{base_url}{path}"
+
+
+def send_notification(subject, message, recipients):
+    recipients = list(set([email for email in (recipients or []) if email]))
+
+    print("DEBUG SEND MAIL:", subject, recipients)
+
+    if not recipients:
+        print("Aucun destinataire trouvé.")
+        return
+
+    send_mail(
+        subject,
+        message,
+        getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@lamh.local"),
+        recipients,
+        fail_silently=False,
+    )
+
+
+# =============================
+# ACCIDENTS
+# =============================
+
+def notify_accident_submitted(accident):
+    recipients = get_tech_emails()
+    url = build_url(reverse("accident_detail", args=[accident.pk]))
+
+    message = f"""
+Bonjour,
+
+Un nouveau rapport d'accident a été soumis et attend une validation technique.
+
+Référence : {accident.reference or "-"}
+Titre : {getattr(accident, "title", None) or "-"}
+Organisation : {getattr(accident, "org_name", None) or "-"}
+Date accident : {getattr(accident, "accident_date", None) or "-"}
+Localité : {getattr(accident, "locality", None) or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Nouvel accident à valider", message, recipients)
+
+
+def notify_accident_tech_validated(accident):
+    recipients = get_program_emails()
+    url = build_url(reverse("accident_detail", args=[accident.pk]))
+
+    message = f"""
+Bonjour,
+
+Un rapport d'accident a été validé techniquement et attend une validation programme.
+
+Référence : {accident.reference or "-"}
+Titre : {getattr(accident, "title", None) or "-"}
+Organisation : {getattr(accident, "org_name", None) or "-"}
+Date accident : {getattr(accident, "accident_date", None) or "-"}
+Localité : {getattr(accident, "locality", None) or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Accident validé techniquement", message, recipients)
+
+
+def notify_accident_program_validated(accident):
+    recipients = get_admin_emails()
+    url = build_url(reverse("accident_detail", args=[accident.pk]))
+
+    message = f"""
+Bonjour,
+
+Un rapport d'accident a été validé par le Project Manager et attend une approbation finale.
+
+Référence : {accident.reference or "-"}
+Titre : {getattr(accident, "title", None) or "-"}
+Organisation : {getattr(accident, "org_name", None) or "-"}
+Date accident : {getattr(accident, "accident_date", None) or "-"}
+Localité : {getattr(accident, "locality", None) or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Accident validé - Approbation requise", message, recipients)
+
+
+def notify_accident_returned(accident):
+    url = build_url(reverse("accident_detail", args=[accident.pk]))
+
+    if accident.status == "RETURNED_FOR_CORRECTION":
+        destination = "au soumissionnaire pour correction"
+        recipients = get_tech_emails()
+    elif accident.status == "TECH_VALIDATED":
+        destination = "à la validation technique"
+        recipients = get_program_emails()
+    else:
+        destination = "dans le workflow"
+        recipients = get_admin_emails()
+
+    message = f"""
+Bonjour,
+
+Un rapport d'accident a été retourné {destination}.
+
+Référence : {accident.reference or "-"}
+Titre : {getattr(accident, "title", None) or "-"}
+Organisation : {getattr(accident, "org_name", None) or "-"}
+
+Motif du retour :
+{getattr(accident, "rejection_reason", None) or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification(
+        f"Accident retourné {destination}",
+        message,
+        recipients,
+    )
+
+def notify_accident_approved(accident):
+    recipients = []
+
+    if getattr(accident, "submitter_email", None):
+        recipients.append(accident.submitter_email)
+
+    recipients += get_program_emails()
+    recipients += get_admin_emails()
+
+    url = build_url(reverse("accident_detail", args=[accident.pk]))
+
+    message = f"""
+Bonjour,
+
+Un rapport d'accident a été approuvé définitivement.
+
+Référence : {accident.reference or "-"}
+Titre : {getattr(accident, "title", None) or "-"}
+Organisation : {getattr(accident, "org_name", None) or "-"}
+Date accident : {getattr(accident, "accident_date", None) or "-"}
+Localité : {getattr(accident, "locality", None) or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Accident approuvé définitivement", message, recipients)
+
+
+# =============================
+# VICTIMES
+# =============================
+
+def notify_victim_submitted(victim):
+    recipients = get_tech_emails()
+    url = build_url(reverse("victim_detail", args=[victim.pk]))
+
+    message = f"""
+Bonjour,
+
+Une nouvelle fiche victime a été soumise et attend une validation technique.
+
+ID victime : {victim.victim_id or "-"}
+Accident : {victim.accident_reference or "-"}
+Nom : {victim.victim_last_name or "-"} {victim.victim_first_name or "-"}
+Organisation : {victim.reporting_org or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Nouvelle victime à valider", message, recipients)
+
+
+def notify_victim_tech_validated(victim):
+    recipients = get_program_emails()
+    url = build_url(reverse("victim_detail", args=[victim.pk]))
+
+    message = f"""
+Bonjour,
+
+Une fiche victime a été validée techniquement et attend une validation programme.
+
+ID victime : {victim.victim_id or "-"}
+Accident : {victim.accident_reference or "-"}
+Nom : {victim.victim_last_name or "-"} {victim.victim_first_name or "-"}
+Organisation : {victim.reporting_org or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Validation technique effectuée", message, recipients)
+
+
+def notify_victim_program_validated(victim):
+    recipients = get_admin_emails()
+    url = build_url(reverse("victim_detail", args=[victim.pk]))
+
+    message = f"""
+Bonjour,
+
+Une fiche victime a été validée par le Project Manager et attend une approbation finale.
+
+ID victime : {victim.victim_id or "-"}
+Accident : {victim.accident_reference or "-"}
+Nom : {victim.victim_last_name or "-"} {victim.victim_first_name or "-"}
+Organisation : {victim.reporting_org or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Validation Programme - Approbation finale requise", message, recipients)
+
+
+def notify_victim_returned(victim):
+    url = build_url(reverse("victim_detail", args=[victim.pk]))
+
+    destination = "au soumissionnaire"
+    recipients = get_tech_emails()
+
+    message = f"""
+Bonjour,
+
+Une fiche victime a été retournée au soumissionnaire.
+
+ID victime : {victim.victim_id or "-"}
+Accident : {victim.accident_reference or "-"}
+Nom : {victim.victim_last_name or "-"} {victim.victim_first_name or "-"}
+Organisation : {victim.reporting_org or "-"}
+
+Motif :
+{victim.rejection_reason or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification(
+        "Victime retournée au soumissionnaire",
+        message,
+        recipients,
+    )
+
+
+def notify_victim_approved(victim):
+    recipients = []
+
+    if getattr(victim, "submitter_email", None):
+        recipients.append(victim.submitter_email)
+
+    recipients += get_program_emails()
+    recipients += get_admin_emails()
+
+    url = build_url(reverse("victim_detail", args=[victim.pk]))
+
+    message = f"""
+Bonjour,
+
+Une fiche victime a été approuvée définitivement.
+
+ID victime : {victim.victim_id or "-"}
+Accident : {victim.accident_reference or "-"}
+Nom : {victim.victim_last_name or "-"} {victim.victim_first_name or "-"}
+Organisation : {victim.reporting_org or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Victime approuvée définitivement", message, recipients)
+
+
+# =============================
+# EREE
+# =============================
+
+def notify_eree_submitted(eree):
+    recipients = get_tech_emails()
+    url = build_url(reverse("eree_detail", args=[eree.pk]))
+
+    message = f"""
+Bonjour,
+
+Une session EREE a été soumise et attend une validation technique.
+
+Référence : {eree.reference or "-"}
+Titre : {eree.title or "-"}
+Organisation : {eree.organisation or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Nouvelle session EREE à valider", message, recipients)
+
+
+def notify_eree_tech_validated(eree):
+    recipients = get_program_emails()
+    url = build_url(reverse("eree_detail", args=[eree.pk]))
+
+    message = f"""
+Bonjour,
+
+Une session EREE a été validée techniquement et attend une validation programme.
+
+Référence : {eree.reference or "-"}
+Titre : {eree.title or "-"}
+Organisation : {eree.organisation or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("EREE validée techniquement", message, recipients)
+
+
+def notify_eree_program_validated(eree):
+    recipients = get_admin_emails()
+    url = build_url(reverse("eree_detail", args=[eree.pk]))
+
+    message = f"""
+Bonjour,
+
+Une session EREE a été validée par le Project Manager et attend une approbation finale.
+
+Référence : {eree.reference or "-"}
+Titre : {eree.title or "-"}
+Organisation : {eree.organisation or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("EREE validée - Approbation requise", message, recipients)
+
+
+def notify_eree_returned(eree):
+    url = build_url(reverse("eree_detail", args=[eree.pk]))
+
+    if eree.session_status == "SUBMITTED":
+        destination = "au soumissionnaire"
+        recipients = get_tech_emails()
+    elif eree.session_status == "TECH_VALIDATED":
+        destination = "à la validation technique"
+        recipients = get_program_emails()
+    else:
+        destination = "dans le workflow"
+        recipients = get_admin_emails()
+
+    message = f"""
+Bonjour,
+
+Une session EREE a été retournée {destination}.
+
+Référence : {eree.reference or "-"}
+Titre : {eree.title or "-"}
+Organisation : {eree.organisation or "-"}
+
+Motif :
+{eree.rejection_reason or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification(
+        f"EREE retournée {destination}",
+        message,
+        recipients,
+    )
+
+
+def notify_eree_approved(eree):
+    recipients = get_admin_emails()
+    url = build_url(reverse("eree_detail", args=[eree.pk]))
+
+    message = f"""
+Bonjour,
+
+Une session EREE a été approuvée définitivement.
+
+Référence : {eree.reference or "-"}
+Titre : {eree.title or "-"}
+Organisation : {eree.organisation or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("EREE approuvée", message, recipients)

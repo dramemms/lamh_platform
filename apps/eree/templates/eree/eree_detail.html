@@ -1,0 +1,545 @@
+{% extends "base.html" %}
+
+{% block title %}Détail session EREE - LAMH Plateforme{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-page {
+        max-width: 1320px;
+        margin: 0 auto;
+    }
+
+    .section-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        margin-bottom: 20px;
+    }
+
+    .section-title {
+        font-weight: 800;
+        font-size: 1.25rem;
+        color: #0f172a;
+        margin-bottom: 18px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 18px;
+    }
+
+    .info-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px 14px;
+    }
+
+    .info-label {
+        display: block;
+        font-size: .82rem;
+        font-weight: 800;
+        color: #475569;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .info-value {
+        font-size: 1rem;
+        color: #0f172a;
+        word-break: break-word;
+    }
+
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+    .workflow-badge {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: .95rem;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .actions-row a {
+        margin-right: 12px;
+        margin-bottom: 10px;
+    }
+
+    .sub-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    .sub-table th,
+    .sub-table td {
+        border: 1px solid #e5e7eb;
+        padding: 10px 12px;
+        text-align: center;
+        font-size: .95rem;
+    }
+
+    .sub-table th {
+        background: #f8fafc;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    @media (max-width: 900px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 detail-page">
+
+    <h1 class="mb-4">Détail session EREE</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} mb-3">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- En-tête -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <h3 class="mb-2">
+                {{ session.reference|default:"-" }}
+                {% if session.title %} - {{ session.title }}{% endif %}
+            </h3>
+            <br>
+            <div class="mb-3 text-muted">
+                📅 {{ session.session_date|date:"d/m/Y"|default:"-" }}
+                &nbsp; | &nbsp;
+                📍 {{ session.region.name|default:"-" }}
+                {% if session.cercle %}/ {{ session.cercle.name }}{% endif %}
+                {% if session.commune %}/ {{ session.commune.name }}{% endif %}
+                {% if session.village %}/ {{ session.village }}{% endif %}
+            </div>
+            <br>
+            <p class="mb-3">
+                <strong>Statut :</strong>
+                <span class="workflow-badge">{{ session.get_status_display }}</span>
+            </p>
+
+            {% if session.rejection_reason %}
+                <div class="alert alert-warning">
+                    <strong>Motif de rejet :</strong> {{ session.rejection_reason }}
+                </div>
+            {% endif %}
+
+            <div class="actions-row">
+                <a href="{% url 'eree_list' %}" class="btn btn-outline-secondary">← Retour à la liste</a>
+
+                {% if can_edit or can_edit_eree %}
+                    <a href="{% url 'eree_edit' session.pk %}" class="btn btn-outline-primary">Modifier</a>
+                {% endif %}
+
+                {% if can_tech_validate and session.status == "SUBMITTED" %}
+                    <a href="{% url 'eree_tech_validate' session.pk %}" class="btn btn-primary">
+                        Valider techniquement
+                    </a>
+                {% endif %}
+
+    {% if can_tech_validate and session.status == "SUBMITTED" %}
+    <a href="{% url 'eree_tech_reject' session.pk %}" class="btn btn-outline-danger">
+        Retourner au soumissionnaire
+    </a>
+{% endif %}
+
+                {% if can_program_validate and session.status == "TECH_VALIDATED" %}
+                    <a href="{% url 'eree_program_validate' session.pk %}" class="btn btn-success">
+                        Valider programme
+                    </a>
+
+                    <a href="{% url 'eree_program_reject' session.pk %}" class="btn btn-outline-warning">
+                        Retour validation technique
+                    </a>
+                {% endif %}
+
+                {% if can_approve and session.status == "PROGRAM_VALIDATED" %}
+                    <a href="{% url 'eree_approve' session.pk %}" class="btn btn-dark">
+                        Approuver définitivement
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Identification -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Identification</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Référence</span>
+                    <div class="info-value">{{ session.reference|default:"-" }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Titre</span>
+                    <div class="info-value">{{ session.title|default:"-" }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Kobo Submission ID</span>
+                    <div class="info-value">{{ session.kobo_submission_id|default:"-" }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Kobo UUID</span>
+                    <div class="info-value">{{ session.kobo_uuid|default:"-" }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Soumis dans Kobo le</span>
+                    <div class="info-value">{{ session.submitted_at_kobo|date:"d/m/Y H:i"|default:"-" }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Créé le</span>
+                    <div class="info-value">{{ session.created_at|date:"d/m/Y H:i"|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations générales / Weekly -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Informations générales / Weekly</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Rapporté par</span>
+                    <div class="info-value">{{ session.reported_by|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Organisation</span>
+                    <div class="info-value">{{ session.organisation|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Semaine</span>
+                    <div class="info-value">{{ session.week_number|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Du</span>
+                    <div class="info-value">{{ session.week_from|date:"d/m/Y"|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Au</span>
+                    <div class="info-value">{{ session.week_to|date:"d/m/Y"|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Mois</span>
+                    <div class="info-value">{{ session.month_name|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Année</span>
+                    <div class="info-value">{{ session.year|default:"-" }}</div>
+                </div>
+
+                <div class="info-item full-width">
+                    <span class="info-label">Description narrative</span>
+                    <div class="info-value">{{ session.narrative_description|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session et localisation -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Session et localisation</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Date session</span>
+                    <div class="info-value">{{ session.session_date|date:"d/m/Y"|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Équipe</span>
+                    <div class="info-value">{{ session.team|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Statut session</span>
+                    <div class="info-value">{{ session.session_status|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Méthodologie</span>
+                    <div class="info-value">{{ session.methodology|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Type de sensibilisation</span>
+                    <div class="info-value">{{ session.sensitization_type|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Sous-catégorie civils</span>
+                    <div class="info-value">{{ session.civilian_subcategory|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Type organisation humanitaire</span>
+                    <div class="info-value">{{ session.humanitarian_org_type|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Précision autres</span>
+                    <div class="info-value">{{ session.other_precision|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Source de financement</span>
+                    <div class="info-value">{{ session.funding_type|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Code région Kobo</span>
+                    <div class="info-value">{{ session.region_code|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Code cercle Kobo</span>
+                    <div class="info-value">{{ session.cercle_code|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Code commune Kobo</span>
+                    <div class="info-value">{{ session.commune_code|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Région</span>
+                    <div class="info-value">{{ session.region.name|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Cercle</span>
+                    <div class="info-value">{{ session.cercle.name|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Commune</span>
+                    <div class="info-value">{{ session.commune.name|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Village</span>
+                    <div class="info-value">{{ session.village|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Coordonnées GPS</span>
+                    <div class="info-value">{{ session.location_gps|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Latitude</span>
+                    <div class="info-value">{{ session.latitude|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Longitude</span>
+                    <div class="info-value">{{ session.longitude|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participants humanitaires -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Participants humanitaires</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Hommes humanitaires</span>
+                    <div class="info-value">{{ session.humanitarian_male }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Femmes humanitaires</span>
+                    <div class="info-value">{{ session.humanitarian_female }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participants PDI -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Participants PDI</div>
+            <table class="sub-table">
+                <thead>
+                    <tr>
+                        <th>Catégorie</th>
+                        <th>Garçons / Hommes</th>
+                        <th>Handicap</th>
+                        <th>Filles / Femmes</th>
+                        <th>Handicap</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>0-5 ans</td><td>{{ session.pdi_boys_0_5 }}</td><td>{{ session.pdi_boys_0_5_dis }}</td><td>{{ session.pdi_girls_0_5 }}</td><td>{{ session.pdi_girls_0_5_dis }}</td></tr>
+                    <tr><td>6-14 ans</td><td>{{ session.pdi_boys_6_14 }}</td><td>{{ session.pdi_boys_6_14_dis }}</td><td>{{ session.pdi_girls_6_14 }}</td><td>{{ session.pdi_girls_6_14_dis }}</td></tr>
+                    <tr><td>15-17 ans</td><td>{{ session.pdi_boys_15_17 }}</td><td>{{ session.pdi_boys_15_17_dis }}</td><td>{{ session.pdi_girls_15_17 }}</td><td>{{ session.pdi_girls_15_17_dis }}</td></tr>
+                    <tr><td>18-24 ans</td><td>{{ session.pdi_men_18_24 }}</td><td>{{ session.pdi_men_18_24_dis }}</td><td>{{ session.pdi_women_18_24 }}</td><td>{{ session.pdi_women_18_24_dis }}</td></tr>
+                    <tr><td>25-49 ans</td><td>{{ session.pdi_men_25_49 }}</td><td>{{ session.pdi_men_25_49_dis }}</td><td>{{ session.pdi_women_25_49 }}</td><td>{{ session.pdi_women_25_49_dis }}</td></tr>
+                    <tr><td>50-59 ans</td><td>{{ session.pdi_men_50_59 }}</td><td>{{ session.pdi_men_50_59_dis }}</td><td>{{ session.pdi_women_50_59 }}</td><td>{{ session.pdi_women_50_59_dis }}</td></tr>
+                    <tr><td>60+ ans</td><td>{{ session.pdi_men_60_plus }}</td><td>{{ session.pdi_men_60_plus_dis }}</td><td>{{ session.pdi_women_60_plus }}</td><td>{{ session.pdi_women_60_plus_dis }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Participants communauté hôte -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Participants communauté hôte</div>
+            <table class="sub-table">
+                <thead>
+                    <tr>
+                        <th>Catégorie</th>
+                        <th>Garçons / Hommes</th>
+                        <th>Handicap</th>
+                        <th>Filles / Femmes</th>
+                        <th>Handicap</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>0-5 ans</td><td>{{ session.ch_boys_0_5 }}</td><td>{{ session.ch_boys_0_5_dis }}</td><td>{{ session.ch_girls_0_5 }}</td><td>{{ session.ch_girls_0_5_dis }}</td></tr>
+                    <tr><td>6-14 ans</td><td>{{ session.ch_boys_6_14 }}</td><td>{{ session.ch_boys_6_14_dis }}</td><td>{{ session.ch_girls_6_14 }}</td><td>{{ session.ch_girls_6_14_dis }}</td></tr>
+                    <tr><td>15-17 ans</td><td>{{ session.ch_boys_15_17 }}</td><td>{{ session.ch_boys_15_17_dis }}</td><td>{{ session.ch_girls_15_17 }}</td><td>{{ session.ch_girls_15_17_dis }}</td></tr>
+                    <tr><td>18-24 ans</td><td>{{ session.ch_men_18_24 }}</td><td>{{ session.ch_men_18_24_dis }}</td><td>{{ session.ch_women_18_24 }}</td><td>{{ session.ch_women_18_24_dis }}</td></tr>
+                    <tr><td>25-49 ans</td><td>{{ session.ch_men_25_49 }}</td><td>{{ session.ch_men_25_49_dis }}</td><td>{{ session.ch_women_25_49 }}</td><td>{{ session.ch_women_25_49_dis }}</td></tr>
+                    <tr><td>50-59 ans</td><td>{{ session.ch_men_50_59 }}</td><td>{{ session.ch_men_50_59_dis }}</td><td>{{ session.ch_women_50_59 }}</td><td>{{ session.ch_women_50_59_dis }}</td></tr>
+                    <tr><td>60+ ans</td><td>{{ session.ch_men_60_plus }}</td><td>{{ session.ch_men_60_plus_dis }}</td><td>{{ session.ch_women_60_plus }}</td><td>{{ session.ch_women_60_plus_dis }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Qualité et supports -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Qualité et supports</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Dépliants adultes</span>
+                    <div class="info-value">{{ session.leaflets_adults }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Dépliants enfants</span>
+                    <div class="info-value">{{ session.leaflets_children }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Date qualité</span>
+                    <div class="info-value">{{ session.quality_date|date:"d/m/Y"|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Équipe qualité</span>
+                    <div class="info-value">{{ session.quality_team|default:"-" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Méthode qualité</span>
+                    <div class="info-value">{{ session.quality_method|default:"-" }}</div>
+                </div>
+
+                <div class="info-item full-width">
+                    <span class="info-label">Observations qualité</span>
+                    <div class="info-value">{{ session.quality_observations|default:"-" }}</div>
+                </div>
+
+                <div class="info-item full-width">
+                    <span class="info-label">Difficultés / solutions</span>
+                    <div class="info-value">{{ session.difficulties_solutions|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Totaux -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Totaux</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Total PDI</span>
+                    <div class="info-value">{{ session.total_pdi }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Total communauté hôte</span>
+                    <div class="info-value">{{ session.total_host_community }}</div>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Total participants</span>
+                    <div class="info-value">{{ session.total_participants }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Historique des modifications</div>
+
+            {% if session.change_logs.all %}
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Utilisateur</th>
+                                <th>Étape workflow</th>
+                                <th>Champ</th>
+                                <th>Ancienne valeur</th>
+                                <th>Nouvelle valeur</th>
+                                <th>Commentaire</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in session.change_logs.all %}
+                                <tr>
+                                    <td>{{ log.changed_at|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ log.changed_by|default:"-" }}</td>
+                                    <td>{{ log.workflow_step|default:"-" }}</td>
+                                    <td>{{ log.field_name|default:"-" }}</td>
+                                    <td>{{ log.old_value|default:"-" }}</td>
+                                    <td>{{ log.new_value|default:"-" }}</td>
+                                    <td>{{ log.comment|default:"-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">Aucune modification enregistrée.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Dashboard LAMH</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #1f2937;
+            font-size: 12px;
+        }
+
+        .header {
+            border-bottom: 3px solid #b91c1c;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #991b1b;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .meta {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .cards {
+            display: table;
+            width: 100%;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            display: table-cell;
+            width: 25%;
+            border: 1px solid #e5e7eb;
+            padding: 14px;
+            background: #f9fafb;
+        }
+
+        .card-title {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: #991b1b;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 6px;
+            margin-top: 22px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            margin-bottom: 18px;
+        }
+
+        th {
+            background: #991b1b;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-size: 11px;
+        }
+
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+            font-size: 11px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            border-top: 1px solid #d1d5db;
+            padding-top: 10px;
+            font-size: 10px;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            background: #dcfce7;
+            color: #166534;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="title">LAMH Platforme</div>
+        <div class="subtitle">
+            Rapport synthétique du tableau de bord — Accidents, Victimes et EREE
+        </div>
+        <div class="meta">
+            Généré le : {{ generated_at|date:"d/m/Y H:i" }}
+        </div>
+    </div>
+
+    <div class="cards">
+        <div class="card">
+            <div class="card-title">Total enregistrements</div>
+            <div class="card-value">{{ total_records }}</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Accidents</div>
+            <div class="card-value">{{ accidents_count }}</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Victimes</div>
+            <div class="card-value">{{ victims_count }}</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Sessions EREE</div>
+            <div class="card-value">{{ eree_count }}</div>
+        </div>
+    </div>
+
+    <h2>Résumé par module</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Module</th>
+                <th>Total</th>
+                <th>Approuvés</th>
+                <th>Observation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Accidents</td>
+                <td>{{ accidents_count }}</td>
+                <td>{{ accidents_approved }}</td>
+                <td><span class="badge">Données opérationnelles</span></td>
+            </tr>
+            <tr>
+                <td>Victimes</td>
+                <td>{{ victims_count }}</td>
+                <td>{{ victims_approved }}</td>
+                <td><span class="badge">Données liées aux accidents</span></td>
+            </tr>
+            <tr>
+                <td>EREE</td>
+                <td>{{ eree_count }}</td>
+                <td>{{ eree_approved }}</td>
+                <td><span class="badge">Activités de sensibilisation</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Note de lecture</h2>
+
+    <p>
+        Ce rapport présente une synthèse des données disponibles dans la plateforme LAMH.
+        Les données approuvées sont celles ayant terminé le processus de validation technique,
+        validation programme et approbation finale.
+    </p>
+
+    <div class="footer">
+        LAMH Platforme — DCA Mali · Rapport généré automatiquement
+    </div>
+
+</body>
+</html>

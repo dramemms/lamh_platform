@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% block title %}Détail victime - LAMH Plateforme{% endblock %}
+
+{% block extra_css %}
+<style>
+  .section-card{border-radius:18px;border:1px solid #e5e7eb;}
+  .info-grid p{margin-bottom:.5rem;}
+  .top-actions,.action-bar{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1rem;align-items:center;}
+  .quick-meta{color:#6b7280;font-size:.95rem;margin-top:.35rem;}
+  .workflow-label{font-weight:700;margin-bottom:.35rem;}
+  .history-table thead th{background:#f8fafc;color:#111827;font-weight:700;border-bottom:1px solid #e5e7eb;padding-top:14px;padding-bottom:14px;white-space:nowrap;}
+  .history-table tbody td{vertical-align:top;padding-top:14px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;}
+  .history-chip{display:inline-flex;align-items:center;padding:.38rem .7rem;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:.85rem;font-weight:600;}
+  .history-value{padding:.5rem .7rem;border-radius:10px;font-size:.93rem;line-height:1.35;word-break:break-word;}
+  .old-value{background:#fff7ed;color:#9a3412;}
+  .new-value{background:#ecfdf5;color:#166534;}
+  .history-comment{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:.6rem .75rem;line-height:1.4;word-break:break-word;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4">Détail victime</h1>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body">
+      <h3 class="mb-1">
+        {{ victim.victim_id|default:"-" }} - {{ victim.victim_last_name|default:"-" }} {{ victim.victim_first_name|default:"" }}
+      </h3>
+
+      <div class="quick-meta">
+        📅 {{ victim.report_date|date:"d/m/Y"|default:"-" }}
+        &nbsp; | &nbsp;
+        📍 {{ victim.region|default:"-" }} / {{ victim.commune|default:"-" }}
+        &nbsp; | &nbsp;
+        🚨 {{ victim.accident_reference|default:victim.accident.reference|default:"-" }}
+      </div>
+
+      <div class="workflow-label mt-3">
+        <strong>Statut :
+          {% if victim.status == "SUBMITTED" %}Soumis
+          {% elif victim.status == "TECH_VALIDATED" %}Validation technique
+          {% elif victim.status == "PROGRAM_VALIDATED" %}Validation programme
+          {% elif victim.status == "APPROVED" %}Approuvé
+          {% elif victim.status == "RETURNED_FOR_CORRECTION" %}Retour pour correction
+          {% else %}{{ victim.get_status_display|default:victim.status }}
+          {% endif %}
+        </strong>
+      </div>
+
+      <div class="top-actions">
+        <a href="{% url 'victim_list' %}" class="btn btn-outline-secondary btn-sm">⬅ Retour à la liste</a>
+
+        {% if victim.accident %}
+          <a href="{% url 'accident_detail' victim.accident.pk %}" class="btn btn-outline-secondary btn-sm">Voir accident</a>
+        {% endif %}
+
+        {% if can_edit_victim and victim.status != "APPROVED" %}
+          <a href="{% url 'victim_edit' victim.pk %}" class="btn btn-danger btn-sm">Modifier</a>
+        {% endif %}
+      </div>
+
+      {% if victim.rejection_reason %}
+        <div class="alert alert-danger mt-3">
+          <strong>Motif de rejet :</strong><br>
+          {{ victim.rejection_reason }}
+        </div>
+      {% endif %}
+
+      
+
+      <div class="action-bar">
+
+        {% if can_tech_validate and victim.status == "SUBMITTED" %}
+          <a href="{% url 'victim_tech_validate' victim.pk %}" class="btn btn-success btn-sm">
+            Valider techniquement
+          </a>
+
+          <a href="{% url 'victim_tech_reject' victim.pk %}" class="btn btn-warning btn-sm">
+            Retour au soumissionnaire
+          </a>
+        {% endif %}
+
+        {% if can_program_validate and victim.status == "TECH_VALIDATED" and not victim.correction_comment %}
+          <a href="{% url 'victim_program_validate' victim.pk %}" class="btn btn-primary btn-sm">
+            Valider programme
+          </a>
+
+          <a href="{% url 'victim_program_reject' victim.pk %}" class="btn btn-warning btn-sm">
+            Retour à la validation technique
+          </a>
+        {% endif %}
+
+        {% if can_tech_validate and victim.status == "TECH_VALIDATED" and victim.correction_comment %}
+          <a href="{% url 'victim_send_to_program' victim.pk %}" class="btn btn-primary btn-sm">
+            Resoumettre au programme
+          </a>
+
+          <a href="{% url 'victim_tech_reject' victim.pk %}" class="btn btn-warning btn-sm">
+            Retour au soumissionnaire
+          </a>
+        {% endif %}
+
+        {% if can_approve and victim.status == "PROGRAM_VALIDATED" %}
+          <a href="{% url 'victim_approve' victim.pk %}" class="btn btn-dark btn-sm">
+            Approuver final
+          </a>
+
+          <a href="{% url 'victim_program_reject' victim.pk %}" class="btn btn-danger btn-sm">
+            Retour à la validation programme
+          </a>
+        {% endif %}
+
+        {% if victim.status == "APPROVED" %}
+    <a href="{% url 'victim_add_assistance_kobo' victim.pk %}"
+       class="btn btn-primary"
+       target="_blank">
+        ➕ Ajouter assistance
+    </a>
+{% else %}
+    <button class="btn btn-secondary" disabled>
+        Assistance disponible après approbation complète
+    </button>
+{% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= INFOS GENERALES ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Informations générales</h5>
+      <p><strong>ID victime :</strong> {{ victim.victim_id|default:"-" }}</p>
+      <p><strong>Référence accident :</strong> {{ victim.accident_reference|default:victim.accident.reference|default:"-" }}</p>
+      <p><strong>Date du rapport :</strong> {{ victim.report_date|date:"d/m/Y"|default:"-" }}</p>
+      <p><strong>Rapporté par :</strong> {{ victim.reported_by|default:"-" }}</p>
+      <p><strong>Organisation :</strong> {{ victim.reporting_org|default:"-" }}</p>
+      <p><strong>Poste :</strong> {{ victim.reporting_position|default:"-" }}</p>
+      <p><strong>Equipe :</strong> {{ victim.reporting_team|default:"-" }}</p>
+      <p><strong>Soumis par :</strong> {{ victim.created_by|default:victim.reported_by|default:"-" }}</p>
+      <p><strong>Date soumission :</strong> {{ victim.submitted_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Date soumission Kobo :</strong> {{ victim.submitted_at_kobo|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Créé le :</strong> {{ victim.created_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Mis à jour le :</strong> {{ victim.updated_at|date:"d/m/Y H:i"|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= INFORMATIONS VICTIME ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Informations victime</h5>
+      <p><strong>Nom :</strong> {{ victim.victim_last_name|default:"-" }}</p>
+      <p><strong>Prénom :</strong> {{ victim.victim_first_name|default:"-" }}</p>
+      <p><strong>Sexe :</strong> {{ victim.victim_sex|default:"-" }}</p>
+      <p><strong>Âge :</strong> {{ victim.victim_age|default:"-" }}</p>
+      <p><strong>Type :</strong> {{ victim.victim_type|default:"-" }}</p>
+      <p><strong>Type autre :</strong> {{ victim.victim_type_other|default:"-" }}</p>
+      <p><strong>Issue :</strong> {{ victim.outcome_type|default:"-" }}</p>
+      <p><strong>Consentement :</strong> {{ victim.consentement|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Raison du non consentement :</strong> {{ victim.no_consent_reason|default:"-" }}</p>
+      <p><strong>Nom du père :</strong> {{ victim.father_name|default:"-" }}</p>
+      <p><strong>Nom de la mère :</strong> {{ victim.mother_name|default:"-" }}</p>
+      <p><strong>Nationalité :</strong> {{ victim.nationality|default:"-" }}</p>
+      <p><strong>Autre nationalité :</strong> {{ victim.nationality_other|default:"-" }}</p>
+      <p><strong>Statut matrimonial :</strong> {{ victim.marital_status|default:"-" }}</p>
+      <p><strong>Profession avant :</strong> {{ victim.profession_before|default:"-" }}</p>
+      <p><strong>Autre profession avant :</strong> {{ victim.profession_before_other|default:"-" }}</p>
+      <p><strong>Profession après :</strong> {{ victim.profession_after|default:"-" }}</p>
+      <p><strong>Autre profession après :</strong> {{ victim.profession_after_other|default:"-" }}</p>
+      <p><strong>Date de naissance connue :</strong> {{ victim.birth_date_known|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Date de naissance :</strong> {{ victim.birth_date|date:"d/m/Y"|default:"-" }}</p>
+      <p><strong>Date approx. de naissance :</strong> {{ victim.birth_date_approx|default:"-" }}</p>
+      <p><strong>Principal soutien familial :</strong> {{ victim.main_breadwinner|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Nombre de dépendants :</strong> {{ victim.dependents_count|default:"-" }}</p>
+      <p><strong>Contact :</strong> {{ victim.victim_contact|default:"-" }}</p>
+      <p><strong>Lieu de résidence :</strong> {{ victim.residence_place|default:"-" }}</p>
+      <p><strong>Adresse :</strong> {{ victim.address|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= CONTEXTE ACCIDENT ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Contexte de l'accident</h5>
+      <p><strong>Activité :</strong> {{ victim.activity_at_accident|default:"-" }}</p>
+      <p><strong>Autre activité :</strong> {{ victim.activity_at_accident_other|default:"-" }}</p>
+      <p><strong>Zone dangereuse connue :</strong> {{ victim.knew_danger_zone|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Raison d'entrée :</strong> {{ victim.reason_enter_zone|default:"-" }}</p>
+      <p><strong>Autre raison :</strong> {{ victim.reason_enter_zone_other|default:"-" }}</p>
+      <p><strong>Nombre d’entrées :</strong> {{ victim.times_entered_zone|default:"-" }}</p>
+      <p><strong>Objet vu :</strong> {{ victim.saw_object|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Cause explosion :</strong> {{ victim.blast_cause|default:"-" }}</p>
+      <p><strong>Autre cause :</strong> {{ victim.blast_cause_other|default:"-" }}</p>
+      <p><strong>Type ALPC :</strong> {{ victim.alpc_type|default:"-" }}</p>
+      <p><strong>Autre type ALPC :</strong> {{ victim.alpc_type_other|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= SANTE ET PRISE EN CHARGE ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Santé et prise en charge</h5>
+      <p><strong>Evacuation urgente :</strong> {{ victim.urgent_medical_evac|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Session ER avant :</strong> {{ victim.received_er_before|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Date approx. ER avant :</strong> {{ victim.er_before_date|default:"-" }}</p>
+      <p><strong>Session ER après :</strong> {{ victim.received_er_after|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Date approx. ER après :</strong> {{ victim.er_after_date|default:"-" }}</p>
+      <p><strong>Organisation ER :</strong> {{ victim.er_org|default:"-" }}</p>
+      <p><strong>Handicap préexistant :</strong> {{ victim.pre_existing_disability|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Type de handicap avant :</strong> {{ victim.disability_type_before|default:"-" }}</p>
+      <p><strong>Type de blessure :</strong> {{ victim.injury_type|default:"-" }}</p>
+      <p><strong>Perte de :</strong> {{ victim.loss_of|default:"-" }}</p>
+      <p><strong>Description blessure :</strong> {{ victim.injury_description|default:"-" }}</p>
+      <p><strong>Structure de santé :</strong> {{ victim.health_structure|default:"-" }}</p>
+      <p><strong>Autre structure de santé :</strong> {{ victim.health_structure_other|default:"-" }}</p>
+      <p><strong>Prise en charge médicale :</strong> {{ victim.medical_care|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Date approx. prise en charge médicale :</strong> {{ victim.medical_care_date|default:"-" }}</p>
+      <p><strong>Organisation médicale :</strong> {{ victim.medical_org|default:"-" }}</p>
+      <p><strong>Prise en charge non médicale :</strong> {{ victim.non_medical_care|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Date approx. prise en charge non médicale :</strong> {{ victim.non_medical_care_date|default:"-" }}</p>
+      <p><strong>Organisation non médicale :</strong> {{ victim.non_medical_org|default:"-" }}</p>
+      <p><strong>Heures avant première prise en charge :</strong> {{ victim.hours_to_first_medical_care|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= SOURCE D'INFORMATION ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Source d'information</h5>
+      <p><strong>Source :</strong> {{ victim.info_source|default:"-" }}</p>
+      <p><strong>Autre source :</strong> {{ victim.info_source_other|default:"-" }}</p>
+      <p><strong>Nom :</strong> {{ victim.source_last_name|default:"-" }}</p>
+      <p><strong>Prénom :</strong> {{ victim.source_first_name|default:"-" }}</p>
+      <p><strong>Contact :</strong> {{ victim.source_contact|default:"-" }}</p>
+      <p><strong>Sexe :</strong> {{ victim.source_sex|default:"-" }}</p>
+      <p><strong>Âge :</strong> {{ victim.source_age|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= LOCALISATION ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Localisation</h5>
+      <p><strong>Pays :</strong> {{ victim.country|default:"-" }}</p>
+      <p><strong>Région :</strong> {{ victim.region|default:"-" }}</p>
+      <p><strong>Cercle :</strong> {{ victim.cercle|default:"-" }}</p>
+      <p><strong>Commune :</strong> {{ victim.commune|default:"-" }}</p>
+      <p><strong>Village / Quartier :</strong> {{ victim.village_quartier|default:"-" }}</p>
+      <p><strong>Latitude :</strong> {{ victim.latitude|default:"-" }}</p>
+      <p><strong>Longitude :</strong> {{ victim.longitude|default:"-" }}</p>
+      <p><strong>Détails de l'emplacement :</strong> {{ victim.location_details|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= DONNEES SYSTEME / KOBO ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Données système / Kobo</h5>
+      <p><strong>ID Kobo :</strong> {{ victim.kobo_submission_id|default:"-" }}</p>
+      <p><strong>UUID Kobo :</strong> {{ victim.kobo_uuid|default:"-" }}</p>
+      <p><strong>Asset UID :</strong> {{ victim.kobo_asset_uid|default:"-" }}</p>
+      <p><strong>Synchronisé :</strong> {{ victim.is_synced|yesno:"Oui,Non"|default:"-" }}</p>
+      <p><strong>Synchronisé le :</strong> {{ victim.synced_at|date:"d/m/Y H:i"|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= WORKFLOW ================= -->
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Workflow de validation</h5>
+      <p><strong>Soumis le :</strong> {{ victim.submitted_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Validé techniquement le :</strong> {{ victim.tech_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Validé programme le :</strong> {{ victim.program_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Approuvé le :</strong> {{ victim.approved_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Validé techniquement par :</strong> {{ victim.tech_validated_by|default:"-" }}</p>
+      <p><strong>Validé programme par :</strong> {{ victim.program_validated_by|default:"-" }}</p>
+      <p><strong>Approuvé par :</strong> {{ victim.approved_by|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- ================= HISTORIQUE ================= -->
+  <div class="card shadow-sm section-card">
+    <div class="card-body">
+      <h5 class="mb-3">Historique des modifications</h5>
+
+      {% if victim.change_logs.all %}
+        <div class="table-responsive">
+          <table class="table history-table align-middle">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Utilisateur</th>
+                <th>Étape</th>
+                <th>Champ</th>
+                <th>Ancienne valeur</th>
+                <th>Nouvelle valeur</th>
+                <th>Commentaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in victim.change_logs.all %}
+                <tr>
+                  <td>{{ log.changed_at|date:"d/m/Y H:i" }}</td>
+                  <td>{{ log.changed_by|default:"-" }}</td>
+                  <td><span class="history-chip">{{ log.workflow_step|default:"-" }}</span></td>
+                  <td>{{ log.field_name|default:"-" }}</td>
+                  <td><div class="history-value old-value">{{ log.old_value|default:"-" }}</div></td>
+                  <td><div class="history-value new-value">{{ log.new_value|default:"-" }}</div></td>
+                  <td><div class="history-comment">{{ log.comment|default:"-" }}</div></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-light border mb-0">Aucune modification enregistrée.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

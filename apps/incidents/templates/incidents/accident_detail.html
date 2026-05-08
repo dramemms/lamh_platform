@@ -1,0 +1,409 @@
+﻿{% extends "base.html" %}
+{% block title %}Détail accident - LAMH Platforme{% endblock %}
+
+{% block extra_css %}
+<style>
+  .status-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:.45rem;
+    padding:.55rem .95rem;
+    border-radius:999px;
+    font-size:.92rem;
+    font-weight:700;
+    margin-top:.35rem;
+  }
+
+  .status-draft{background:#f3f4f6;color:#374151;}
+  .status-submitted{background:#eef2ff;color:#3730a3;}
+  .status-tech{background:#ecfeff;color:#155e75;}
+  .status-program{background:#eff6ff;color:#1d4ed8;}
+  .status-approved{background:#ecfdf5;color:#166534;}
+
+  .section-card{
+    border-radius:18px;
+    border:1px solid #e5e7eb;
+  }
+
+  .info-grid p{
+    margin-bottom:.5rem;
+  }
+
+  .action-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.75rem;
+    margin-top:1.5rem;
+    align-items:center;
+  }
+
+  .top-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.75rem;
+    margin-top:1rem;
+    align-items:center;
+  }
+
+  .counter-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:34px;
+    height:34px;
+    border-radius:999px;
+    padding:0 .75rem;
+    background:#0d6efd;
+    color:#fff;
+    font-weight:700;
+  }
+
+  .table td, .table th{
+    vertical-align:middle;
+  }
+
+  .quick-meta{
+    color:#6b7280;
+    font-size:.95rem;
+    margin-top:.35rem;
+  }
+
+  .workflow-label{
+    font-weight:700;
+    margin-bottom:.35rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4">Détail accident - LAMH Platforme</h1>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body">
+
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <h3 class="mb-1">{{ accident.reference }} - {{ accident.title }}</h3>
+          <div class="quick-meta">
+            📅 {{ accident.accident_date|date:"d/m/Y"|default:"-" }}
+            &nbsp; | &nbsp;
+            📍 {{ accident.region|default:"-" }} / {{ accident.commune|default:"-" }}
+          </div>
+        </div>
+
+        <div class="text-end">
+          <div class="workflow-label">
+            <strong>Statut :
+              {% if accident.status == "DRAFT" %}
+                Brouillon
+              {% elif accident.status == "SUBMITTED" %}
+                Soumis
+              {% elif accident.status == "TECH_VALIDATED" %}
+                Validation technique
+              {% elif accident.status == "PROGRAM_VALIDATED" %}
+                Validation programme
+              {% elif accident.status == "APPROVED" %}
+                Approuvé
+              {% else %}
+                {{ accident.get_status_display|default:accident.status }}
+              {% endif %}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <a href="{% url 'accident_list' %}" class="btn btn-outline-secondary btn-sm">
+          ⬅ Retour à la liste
+        </a>
+
+        {% if accident.is_fully_approved and kobo_victim_prefill_url %}
+          <a href="{{ kobo_victim_prefill_url }}"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="btn btn-success btn-sm">
+            ➕ Ajouter une victime
+          </a>
+        {% elif accident.is_fully_approved %}
+          <a href="{% url 'victim_add' accident.pk %}" class="btn btn-success btn-sm">
+            ➕ Ajouter une victime
+          </a>
+        {% else %}
+          <button class="btn btn-secondary btn-sm" disabled
+                  title="L'accident doit être entièrement approuvé avant l'ajout d'une victime.">
+            ➕ Ajouter une victime
+          </button>
+        {% endif %}
+
+        {% if can_edit_accident and accident.status != "APPROVED" %}
+          <a href="{% url 'accident_edit' accident.pk %}" class="btn btn-danger btn-sm">
+            Modifier
+          </a>
+        {% endif %}
+      </div>
+
+      {% if accident.rejection_reason %}
+        <div class="alert alert-danger mt-3">
+          <strong>Motif de rejet :</strong>
+          {{ accident.rejection_reason }}
+        </div>
+      {% endif %}
+
+      {% if accident.correction_comment %}
+        <div class="alert alert-warning mt-3">
+          <strong>Commentaire de correction :</strong><br>
+          {{ accident.correction_comment }}
+        </div>
+      {% endif %}
+
+      {% if accident.validation_comment %}
+        <div class="alert alert-info mt-3">
+          <strong>Commentaire de validation :</strong><br>
+          {{ accident.validation_comment }}
+        </div>
+      {% endif %}
+
+      <div class="action-bar">
+
+  {# SUPERVISEUR : statut Soumis #}
+  {% if can_tech_validate and accident.status == "SUBMITTED" %}
+    <a href="{% url 'accident_transition' accident.pk 'tech_validate' %}" class="btn btn-success btn-sm">
+      Valider techniquement
+    </a>
+
+    <a href="{% url 'accident_workflow_form' accident.pk 'tech_reject' %}" class="btn btn-warning btn-sm">
+      Retour au soumissionnaire
+    </a>
+  {% endif %}
+
+  {# PROGRAMME MANAGER : statut Validation technique #}
+  {% if can_program_validate and accident.status == "TECH_VALIDATED" %}
+    <a href="{% url 'accident_transition' accident.pk 'program_validate' %}" class="btn btn-primary btn-sm">
+      Valider programme
+    </a>
+
+    <a href="{% url 'accident_workflow_form' accident.pk 'program_reject' %}" class="btn btn-warning btn-sm">
+      Retour à la validation technique
+    </a>
+  {% endif %}
+
+  {# DATABASE ADMIN : statut Validation programme #}
+  {% if can_approve and accident.status == "PROGRAM_VALIDATED" %}
+    <a href="{% url 'accident_transition' accident.pk 'approve' %}" class="btn btn-dark btn-sm">
+      Approuver final
+    </a>
+
+    <a href="{% url 'accident_workflow_form' accident.pk 'program_reject' %}" class="btn btn-danger btn-sm">
+      Retour à la validation programme
+    </a>
+  {% endif %}
+
+</div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Détails de l'accident</h5>
+      <p><strong>ID Accident :</strong> {{ accident.reference|default:"-" }}</p>
+      <p><strong>Titre :</strong> {{ accident.title|default:"-" }}</p>
+      <p><strong>Date de l'accident :</strong> {{ accident.accident_date|date:"d/m/Y"|default:"-" }}</p>
+      <p><strong>Heure de l'accident :</strong> {{ accident.accident_time|time:"H:i"|default:"-" }}</p>
+      <p><strong>Nombre de victimes :</strong> {{ accident.number_victims|default:"-" }}</p>
+      <p><strong>Autres dommages :</strong> {{ accident.other_damage|default:"-" }}</p>
+      <p><strong>Activité au moment de l'accident :</strong> {{ accident.activity_at_time|default:"-" }}</p>
+      <p><strong>Description de l'accident :</strong> {{ accident.description|default:"-" }}</p>
+      <p><strong>Catégorie / Type d'accident :</strong> {{ accident.get_category_display|default:accident.category|default:"-" }}</p>
+      <p><strong>Impact principal :</strong> {{ accident.get_impact_display|default:accident.impact|default:"-" }}</p>
+      <p><strong>Type d'engin :</strong> {{ accident.device_type|default:"-" }}</p>
+      <p><strong>Statut de l'engin :</strong> {{ accident.device_status|default:"-" }}</p>
+      <p><strong>L'engin est-il marqué ? :</strong> {{ accident.device_marked|default:"-" }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h5 class="mb-0">Victimes liées à cet accident</h5>
+        <span class="counter-badge">{{ victims_count|default:0 }}</span>
+      </div>
+
+      {% if victims %}
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>ID victime</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Sexe</th>
+                <th>Age</th>
+                <th>Type</th>
+                <th>Issue</th>
+                <th>Localité</th>
+                <th>Date rapport</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for victim in victims %}
+                <tr>
+                  <td>{{ victim.victim_id|default:"-" }}</td>
+                  <td>{{ victim.victim_last_name|default:"-" }}</td>
+                  <td>{{ victim.victim_first_name|default:"-" }}</td>
+                  <td>{{ victim.victim_sex|default:"-" }}</td>
+                  <td>{{ victim.victim_age|default:"-" }}</td>
+                  <td>{{ victim.victim_type|default:"-" }}</td>
+                  <td>{{ victim.outcome_type|default:"-" }}</td>
+                  <td>{{ victim.village_quartier|default:"-" }}</td>
+                  <td>{{ victim.report_date|date:"d/m/Y"|default:"-" }}</td>
+                  <td>
+                    <a href="{% url 'victim_detail' victim.pk %}" class="btn btn-outline-primary btn-sm">
+                      Voir
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-secondary mb-0">
+          Aucune victime n'est encore liée à cet accident.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Organisation / Reporting</h5>
+      <p><strong>Date du rapport :</strong> {{ accident.report_date|date:"d/m/Y"|default:"-" }}</p>
+      <p><strong>Organisation :</strong> {{ accident.org_name|default:"-" }}</p>
+      <p><strong>Rapporté par :</strong> {{ accident.reported_by|default:"-" }}</p>
+      <p><strong>Poste :</strong> {{ accident.position|default:"-" }}</p>
+      <p><strong>Equipe :</strong> {{ accident.team|default:"-" }}</p>
+      <p><strong>Source de financement :</strong> {{ accident.funding_source|default:"-" }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Localisation</h5>
+      <p><strong>Pays :</strong> {{ accident.country|default:"-" }}</p>
+      <p><strong>Région :</strong> {{ accident.region|default:"-" }}</p>
+      <p><strong>Cercle :</strong> {{ accident.cercle|default:"-" }}</p>
+      <p><strong>Commune :</strong> {{ accident.commune|default:"-" }}</p>
+      <p><strong>Localité / Village :</strong> {{ accident.locality|default:"-" }}</p>
+      <p><strong>Latitude :</strong> {{ accident.latitude|default:"-" }}</p>
+      <p><strong>Longitude :</strong> {{ accident.longitude|default:"-" }}</p>
+      <p><strong>Accès sécurisé :</strong> {{ accident.secure_access|default:"-" }}</p>
+      <p><strong>Source des coordonnées :</strong> {{ accident.src_coordinates|default:"-" }}</p>
+      <p><strong>Coordonnées GPS brutes :</strong> {{ accident.location_gps|default:"-" }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Source d'information</h5>
+      <p><strong>Source / rapporté par :</strong> {{ accident.source_name|default:"-" }}</p>
+      <p><strong>Contact source :</strong> {{ accident.source_contact|default:"-" }}</p>
+      <p><strong>Nom source :</strong> {{ accident.source_last_name|default:"-" }}</p>
+      <p><strong>Prénom source :</strong> {{ accident.source_first_name|default:"-" }}</p>
+      <p><strong>Sexe source :</strong> {{ accident.source_gender|default:"-" }}</p>
+      <p><strong>Age source :</strong> {{ accident.source_age|default:"-" }}</p>
+      <p><strong>Type source :</strong> {{ accident.source_type|default:"-" }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Soumissionnaire</h5>
+      <p><strong>Email :</strong> {{ accident.submitter_email|default:"-" }}</p>
+      <p><strong>Prénom :</strong> {{ accident.submitter_first_name|default:"-" }}</p>
+      <p><strong>Nom :</strong> {{ accident.submitter_last_name|default:"-" }}</p>
+      <p><strong>Téléphone :</strong> {{ accident.submitter_phone|default:"-" }}</p>
+      <p><strong>Organisation :</strong> {{ accident.submitter_organization|default:"-" }}</p>
+      <p><strong>Fonction :</strong> {{ accident.submitter_role|default:"-" }}</p>
+      <p><strong>Identifiant Kobo :</strong> {{ accident.submitter_username|default:"-" }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Système / Kobo</h5>
+      <p><strong>Source :</strong> {{ accident.get_source_display|default:accident.source|default:"-" }}</p>
+      <p><strong>Kobo Submission ID :</strong> {{ accident.kobo_submission_id|default:"-" }}</p>
+      <p><strong>Kobo UUID :</strong> {{ accident.kobo_uuid|default:"-" }}</p>
+      <p><strong>Kobo Asset UID :</strong> {{ accident.kobo_asset_uid|default:"-" }}</p>
+      <p><strong>Soumis dans Kobo le :</strong> {{ accident.submitted_at_kobo|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Synchronisé :</strong> {% if accident.is_synced %}Oui{% else %}Non{% endif %}</p>
+      <p><strong>Synchronisé le :</strong> {{ accident.synced_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Créé par :</strong> {{ accident.created_by|default:"-" }}</p>
+      <p><strong>Créé le :</strong> {{ accident.created_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Mis à jour le :</strong> {{ accident.updated_at|date:"d/m/Y H:i"|default:"-" }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4 section-card">
+    <div class="card-body info-grid">
+      <h5>Workflow de validation</h5>
+      <p><strong>Soumis le :</strong> {{ accident.submitted_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Validé techniquement le :</strong> {{ accident.tech_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Validé programme le :</strong> {{ accident.program_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Approuvé le :</strong> {{ accident.approved_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Validé techniquement par :</strong> {{ accident.tech_validated_by|default:"-" }}</p>
+      <p><strong>Validé programme par :</strong> {{ accident.program_validated_by|default:"-" }}</p>
+      <p><strong>Approuvé par :</strong> {{ accident.approved_by|default:"-" }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm section-card">
+    <div class="card-body">
+      <h5>Historique des modifications</h5>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered mt-3 align-middle">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Utilisateur</th>
+              <th>Etape</th>
+              <th>Champ</th>
+              <th>Ancienne valeur</th>
+              <th>Nouvelle valeur</th>
+              <th>Commentaire</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in accident.change_logs.all %}
+              <tr>
+                <td>{{ log.changed_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ log.changed_by|default:"-" }}</td>
+                <td>{{ log.workflow_step|default:"-" }}</td>
+                <td>{{ log.field_name|default:"-" }}</td>
+                <td>{{ log.old_value|default:"-" }}</td>
+                <td>{{ log.new_value|default:"-" }}</td>
+                <td>{{ log.comment|default:"-" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center">Aucune modification</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

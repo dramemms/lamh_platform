@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% load json_filters %}
+
+{% block title %}
+Reporting
+{% endblock %}
+
+{% block content %}
+
+<div class="container" style="padding:40px;">
+
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:20px;
+        flex-wrap:wrap;
+        gap:20px;
+    ">
+
+        <div>
+
+            <h3 style="
+                font-size:56px;
+                font-weight:800;
+                color:#081c3a;
+                margin-bottom:10px;
+            ">
+                Reporting
+            </h3>
+
+            
+
+        </div>
+
+        <div style="
+            display:flex;
+            gap:14px;
+            flex-wrap:wrap;
+        ">
+
+            <a
+                href="{% url 'reporting:assistance_dashboard' %}"
+                style="
+                    background:#7b1f28;
+                    color:white;
+                    padding:14px 22px;
+                    border-radius:10px;
+                    text-decoration:none;
+                    font-weight:800;
+                "
+            >
+                Dashboard
+            </a>
+
+            <a
+                href="{% url 'reporting:export_assistance_excel' %}"
+                style="
+                    background:#065f46;
+                    color:white;
+                    padding:14px 22px;
+                    border-radius:10px;
+                    text-decoration:none;
+                    font-weight:800;
+                "
+            >
+                Export Excel
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div style="
+        background:white;
+        border-radius:18px;
+        padding:35px;
+        box-shadow:0 4px 18px rgba(0,0,0,0.08);
+    ">
+
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:25px;
+        ">
+
+            <span style="
+                font-size:20px;
+                font-weight:800;
+                color:#444;
+            ">
+                Total : {{ submissions|length }}
+            </span>
+
+        </div>
+
+
+        <!-- FILTRES -->
+
+        <form method="get" style="
+            display:grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto auto;
+            gap:18px;
+            align-items:end;
+            margin-bottom:35px;
+        ">
+
+            <div>
+
+                <label style="font-weight:800;">
+                    Recherche
+                </label>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ q }}"
+                    placeholder="ID victime, nom ou prénom..."
+                    style="
+                        width:100%;
+                        padding:14px;
+                        border:1px solid #ddd;
+                        border-radius:10px;
+                    "
+                >
+
+            </div>
+
+            <div>
+
+                <label style="font-weight:800;">
+                    Type assistance
+                </label>
+
+                <input
+                    type="text"
+                    name="type_assistance"
+                    value="{{ type_assistance }}"
+                    placeholder="Type assistance"
+                    style="
+                        width:100%;
+                        padding:14px;
+                        border:1px solid #ddd;
+                        border-radius:10px;
+                    "
+                >
+
+            </div>
+
+            <div>
+
+                <label style="font-weight:800;">
+                    Région
+                </label>
+
+                <input
+                    type="text"
+                    name="region"
+                    value="{{ region }}"
+                    placeholder="Région"
+                    style="
+                        width:100%;
+                        padding:14px;
+                        border:1px solid #ddd;
+                        border-radius:10px;
+                    "
+                >
+
+            </div>
+
+            <div>
+
+                <label style="font-weight:800;">
+                    Cercle
+                </label>
+
+                <input
+                    type="text"
+                    name="cercle"
+                    value="{{ cercle }}"
+                    placeholder="Cercle"
+                    style="
+                        width:100%;
+                        padding:14px;
+                        border:1px solid #ddd;
+                        border-radius:10px;
+                    "
+                >
+
+            </div>
+
+            <button type="submit" style="
+                background:#7b1f28;
+                color:white;
+                padding:14px 24px;
+                border:none;
+                border-radius:10px;
+                font-weight:800;
+                cursor:pointer;
+            ">
+                Filtrer
+            </button>
+
+            <a
+                href="{% url 'reporting:reporting_home' %}"
+                style="
+                    padding:14px 20px;
+                    text-decoration:none;
+                    font-weight:800;
+                    color:#5b21b6;
+                "
+            >
+                Réinitialiser
+            </a>
+
+        </form>
+
+
+
+        <!-- TABLEAU -->
+
+        <div style="overflow-x:auto;">
+
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                font-size:16px;
+            ">
+
+                <thead>
+
+                    <tr style="
+                        border-bottom:1px solid #ddd;
+                        text-align:left;
+                        background:#f8fafc;
+                    ">
+
+                        <th style="padding:16px;">Code victime</th>
+                        <th style="padding:16px;">Nom</th>
+                        <th style="padding:16px;">Prénom</th>
+                        <th style="padding:16px;">Sexe</th>
+                        <th style="padding:16px;">Âge</th>
+                        <th style="padding:16px;">Type assistance</th>
+                        <th style="padding:16px;">Région</th>
+                        <th style="padding:16px;">Cercle</th>
+                        <th style="padding:16px;">Date réception</th>
+                        <th style="padding:16px;">Action</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for submission in submissions %}
+
+                    <tr style="
+                        border-bottom:1px solid #eee;
+                    ">
+
+                        <td style="
+                            padding:16px;
+                            font-weight:800;
+                            color:#0f172a;
+                        ">
+                            {{ submission.raw_data|get_item:"g_identite/code_victime" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.raw_data|get_item:"g_identite/nom_victime" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.raw_data|get_item:"g_identite/prenom_victime" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.raw_data|get_item:"g_identite/sexe_victime" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.raw_data|get_item:"g_identite/age_victime" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.raw_data|get_item:"g_assistance/type_assistance" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.raw_data|get_item:"g_localisation/region" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.raw_data|get_item:"g_localisation/cercle" }}
+                        </td>
+
+                        <td style="padding:16px;">
+                            {{ submission.submitted_at|date:"d/m/Y H:i" }}
+                        </td>
+
+                        <td style="padding:16px;">
+
+                            <a
+                                href="{% url 'reporting:assistance_detail' submission.id %}"
+                                style="
+                                    color:#5b21b6;
+                                    font-weight:800;
+                                    text-decoration:none;
+                                "
+                            >
+                                Voir
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+
+                        <td colspan="10" style="
+                            padding:30px;
+                            text-align:center;
+                            color:#777;
+                        ">
+                            Aucune soumission Kobo reçue pour le moment.
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

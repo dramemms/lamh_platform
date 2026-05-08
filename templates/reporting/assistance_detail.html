@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load json_filters %}
+
+{% block title %}Détail assistance victime{% endblock %}
+
+{% block content %}
+
+<div style="padding:40px;">
+
+    <h1 style="font-size:46px; color:#081c3a;">
+        Détail assistance victime
+    </h1>
+
+    <p style="font-size:18px; color:#555;">
+        Soumission reçue le {{ submission.submitted_at|date:"d/m/Y H:i" }}
+    </p>
+
+    <a href="{% url 'reporting:reporting_home' %}" style="color:#5b21b6; font-weight:800; text-decoration:none;">
+        ← Retour à la liste
+    </a>
+
+    <div style="background:white; border-radius:18px; padding:35px; margin-top:25px; box-shadow:0 4px 18px rgba(0,0,0,0.08);">
+
+        <style>
+            .section-title {
+                background:#8b1e2d;
+                color:white;
+                padding:12px 16px;
+                border-radius:8px;
+                margin:30px 0 15px;
+                font-size:22px;
+                font-weight:800;
+            }
+
+            .detail-table {
+                width:100%;
+                border-collapse:collapse;
+                margin-bottom:20px;
+                font-size:17px;
+            }
+
+            .detail-table td {
+                padding:12px 14px;
+                border-bottom:1px solid #eee;
+                vertical-align:top;
+            }
+
+            .detail-table td:first-child {
+                width:35%;
+                font-weight:800;
+                background:#f8f8f8;
+                color:#081c3a;
+            }
+        </style>
+
+        <div class="section-title">IDENTITÉ DE LA VICTIME</div>
+        <table class="detail-table">
+            <tr><td>Code victime</td><td>{{ submission.raw_data|get_item:"g_identite/code_victime" }}</td></tr>
+            <tr><td>Nom de la victime</td><td>{{ submission.raw_data|get_item:"g_identite/nom_victime" }}</td></tr>
+            <tr><td>Prénom de la victime</td><td>{{ submission.raw_data|get_item:"g_identite/prenom_victime" }}</td></tr>
+            <tr><td>Âge de la victime</td><td>{{ submission.raw_data|get_item:"g_identite/age_victime" }}</td></tr>
+            <tr><td>Sexe de la victime</td><td>{{ submission.raw_data|get_item:"g_identite/sexe_victime" }}</td></tr>
+            <tr><td>Situation de la victime</td><td>{{ submission.raw_data|get_item:"g_identite/situation_victime" }}</td></tr>
+            <tr><td>Catégorie / type d'accident</td><td>{{ submission.raw_data|get_item:"g_identite/categorie_accident" }}</td></tr>
+            <tr><td>Date de l'accident</td><td>{{ submission.raw_data|get_item:"g_identite/date_accident" }}</td></tr>
+            <tr><td>Date de rapportage</td><td>{{ submission.raw_data|get_item:"g_identite/date_rapportage" }}</td></tr>
+        </table>
+
+        <div class="section-title">LOCALISATION</div>
+        <table class="detail-table">
+            <tr><td>Région</td><td>{{ submission.raw_data|get_item:"g_localisation/region" }}</td></tr>
+            <tr><td>Cercle</td><td>{{ submission.raw_data|get_item:"g_localisation/cercle" }}</td></tr>
+            <tr><td>Commune</td><td>{{ submission.raw_data|get_item:"g_localisation/commune" }}</td></tr>
+            <tr><td>Village / Quartier</td><td>{{ submission.raw_data|get_item:"g_localisation/village_quartier" }}</td></tr>
+            <tr><td>Coordonnées GPS</td><td>{{ submission.raw_data|get_item:"g_localisation/coordonnees_gps" }}</td></tr>
+        </table>
+
+        <div class="section-title">BÉNÉFICIAIRE DE L'ASSISTANCE</div>
+        <table class="detail-table">
+            <tr><td>Le bénéficiaire est-il la victime directe ?</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/beneficiaire_victime_directe" }}</td></tr>
+            <tr><td>Nom du bénéficiaire</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/nom_beneficiaire" }}</td></tr>
+            <tr><td>Prénom du bénéficiaire</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/prenom_beneficiaire" }}</td></tr>
+            <tr><td>Catégorie de bénéficiaire</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/categorie_beneficiaire" }}</td></tr>
+            <tr><td>Nom de la victime directe</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/nom_victime_directe" }}</td></tr>
+            <tr><td>Prénom de la victime directe</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/prenom_victime_directe" }}</td></tr>
+            <tr><td>Numéro du bénéficiaire</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/numero_beneficiaire" }}</td></tr>
+            <tr><td>Lien du bénéficiaire avec la victime directe</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/lien_beneficiaire_victime" }}</td></tr>
+            <tr><td>Téléphone / Orange Money</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/telephone_orange_money" }}</td></tr>
+            <tr><td>Justification de l’éligibilité au transfert monétaire</td><td>{{ submission.raw_data|get_item:"g_beneficiaire/justification_eligibilite_transfert" }}</td></tr>
+        </table>
+
+        <div class="section-title">ASSISTANCES REÇUES PAR LA VICTIME</div>
+        <table class="detail-table">
+            <tr><td>Catégorie d'assistance</td><td>{{ submission.raw_data|get_item:"g_assistance/categorie_assistance" }}</td></tr>
+            <tr><td>Type d'assistance / Référencement</td><td>{{ submission.raw_data|get_item:"g_assistance/type_assistance" }}</td></tr>
+            <tr><td>Type de référencement précision</td><td>{{ submission.raw_data|get_item:"g_assistance/type_referencement_precision" }}</td></tr>
+            <tr><td>Structure de référencement</td><td>{{ submission.raw_data|get_item:"g_assistance/structure_referencement" }}</td></tr>
+            <tr><td>Date de référencement</td><td>{{ submission.raw_data|get_item:"g_assistance/date_referencement" }}</td></tr>
+            <tr><td>Nom du point focal</td><td>{{ submission.raw_data|get_item:"g_assistance/nom_point_focal" }}</td></tr>
+            <tr><td>Contact du point focal</td><td>{{ submission.raw_data|get_item:"g_assistance/contact_point_focal" }}</td></tr>
+            <tr><td>Date suivi référencement 1</td><td>{{ submission.raw_data|get_item:"g_assistance/date_suivi_referencement_1" }}</td></tr>
+            <tr><td>Date suivi référencement 2</td><td>{{ submission.raw_data|get_item:"g_assistance/date_suivi_referencement_2" }}</td></tr>
+            <tr><td>Date suivi référencement 3</td><td>{{ submission.raw_data|get_item:"g_assistance/date_suivi_referencement_3" }}</td></tr>
+            <tr><td>Date suivi référencement 4</td><td>{{ submission.raw_data|get_item:"g_assistance/date_suivi_referencement_4" }}</td></tr>
+            <tr><td>Date de début / date de l'assistance</td><td>{{ submission.raw_data|get_item:"g_assistance/date_debut_assistance" }}</td></tr>
+            <tr><td>Date de fin de l'assistance</td><td>{{ submission.raw_data|get_item:"g_assistance/date_fin_assistance" }}</td></tr>
+            <tr><td>Coût / montant de l'assistance</td><td>{{ submission.raw_data|get_item:"g_assistance/cout_montant_assistance" }}</td></tr>
+            <tr><td>Devise</td><td>{{ submission.raw_data|get_item:"g_assistance/devise" }}</td></tr>
+            <tr><td>Statut du transfert</td><td>{{ submission.raw_data|get_item:"g_assistance/statut_transfert" }}</td></tr>
+            <tr><td>Réception intégrale du montant confirmée ?</td><td>{{ submission.raw_data|get_item:"g_assistance/reception_integrale_montant" }}</td></tr>
+            <tr><td>Usage principal prévu du transfert monétaire</td><td>{{ submission.raw_data|get_item:"g_assistance/usage_transfert_monetaire" }}</td></tr>
+            <tr><td>Moyen d'évacuation utilisé</td><td>{{ submission.raw_data|get_item:"g_assistance/moyen_evacuation" }}</td></tr>
+            <tr><td>Structure / prestataire de prise en charge</td><td>{{ submission.raw_data|get_item:"g_assistance/structure_prestataire_prise_en_charge" }}</td></tr>
+            <tr><td>Préciser la structure</td><td>{{ submission.raw_data|get_item:"g_assistance/preciser_structure" }}</td></tr>
+            <tr><td>Mode de paiement / transfert</td><td>{{ submission.raw_data|get_item:"g_assistance/mode_paiement_transfert" }}</td></tr>
+            <tr><td>Point A / origine</td><td>{{ submission.raw_data|get_item:"g_assistance/point_a_origine" }}</td></tr>
+            <tr><td>Point B / destination</td><td>{{ submission.raw_data|get_item:"g_assistance/point_b_destination" }}</td></tr>
+            <tr><td>Temps estimé entre l’accident et l’évacuation</td><td>{{ submission.raw_data|get_item:"g_assistance/temps_estime_evacuation" }}</td></tr>
+            <tr><td>Structure de prise en charge</td><td>{{ submission.raw_data|get_item:"g_assistance/structure_prise_en_charge" }}</td></tr>
+            <tr><td>Soins médicaux d'urgence</td><td>{{ submission.raw_data|get_item:"g_assistance/soins_medicaux_urgence" }}</td></tr>
+            <tr><td>Type de soins médicaux</td><td>{{ submission.raw_data|get_item:"g_assistance/type_soins_medicaux" }}</td></tr>
+            <tr><td>Référence transfert / reçu</td><td>{{ submission.raw_data|get_item:"g_assistance/reference_transfert_recu" }}</td></tr>
+            <tr><td>Y a-t-il eu un référencement externe ?</td><td>{{ submission.raw_data|get_item:"g_assistance/referencement_externe" }}</td></tr>
+            <tr><td>Type de référencement</td><td>{{ submission.raw_data|get_item:"g_assistance/type_referencement" }}</td></tr>
+            <tr><td>Préciser le référencement</td><td>{{ submission.raw_data|get_item:"g_assistance/preciser_referencement" }}</td></tr>
+            <tr><td>Observations sur cette assistance</td><td>{{ submission.raw_data|get_item:"g_assistance/observations_assistance" }}</td></tr>
+        </table>
+
+        <div class="section-title">OUVERTURE ET CLÔTURE DU CAS</div>
+        <table class="detail-table">
+            <tr><td>Date d'ouverture du cas</td><td>{{ submission.raw_data|get_item:"g_cloture/date_ouverture_cas" }}</td></tr>
+            <tr><td>Date de clôture du cas</td><td>{{ submission.raw_data|get_item:"g_cloture/date_cloture_cas" }}</td></tr>
+            <tr><td>Statut du cas</td><td>{{ submission.raw_data|get_item:"g_cloture/statut_cas" }}</td></tr>
+            <tr><td>Niveau de satisfaction du bénéficiaire</td><td>{{ submission.raw_data|get_item:"g_cloture/niveau_satisfaction" }}</td></tr>
+            <tr><td>Motif de clôture du cas</td><td>{{ submission.raw_data|get_item:"g_cloture/motif_cloture_cas" }}</td></tr>
+            <tr><td>Niveau de résolution du besoin initial</td><td>{{ submission.raw_data|get_item:"g_cloture/niveau_resolution_besoin" }}</td></tr>
+            <tr><td>Commentaires généraux</td><td>{{ submission.raw_data|get_item:"g_cloture/commentaires_generaux" }}</td></tr>
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
