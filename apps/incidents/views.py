@@ -1209,19 +1209,19 @@ def kobo_accident_webhook(request):
         commune_obj = None
 
         if region_name:
-            region_obj = Region.objects.filter(
-                name__iexact=region_name
+           region_obj = Region.objects.filter(
+           Q(code=str(region_name)) | Q(name__iexact=str(region_name))
             ).first()
 
         if cercle_name:
-            cercle_obj = Cercle.objects.filter(
-                name__iexact=cercle_name
+           cercle_obj = Cercle.objects.filter(
+           Q(code=str(cercle_name)) | Q(name__iexact=str(cercle_name))
             ).first()
-
+           
         if commune_name:
-            commune_obj = Commune.objects.filter(
-                name__iexact=commune_name
-            ).first()
+           commune_obj = Commune.objects.filter(
+           Q(code=str(commune_name)) | Q(name__iexact=str(commune_name))
+           ).first()
 
         if not cercle_obj:
             return JsonResponse(
