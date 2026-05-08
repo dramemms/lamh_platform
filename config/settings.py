@@ -158,16 +158,20 @@ LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "home"
 
 
-# EMAILS - mode test local
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "LAMH Platform <no-reply@lamh.local>"
+# EMAILS
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend"
+)
 
-VICTIM_TECH_VALIDATORS_EMAILS = [
-    "dramemms@gmail.com",
-]
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
 
-VICTIM_ADMIN_APPROVERS_EMAILS = [
-    "dramemms@gmail.com",
-]
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 
-KOBO_ASSISTANCE_FORM_URL = "https://ee.kobotoolbox.org/x/lehsuEqI"
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL",
+    EMAIL_HOST_USER or "LAMH Platform <no-reply@lamh.local>"
+)
