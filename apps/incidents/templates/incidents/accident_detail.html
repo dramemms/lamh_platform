@@ -223,7 +223,7 @@
       <p><strong>Activité au moment de l'accident :</strong> {{ accident.activity_at_time|default:"-" }}</p>
       <p><strong>Description de l'accident :</strong> {{ accident.description|default:"-" }}</p>
       <p><strong>Catégorie / Type d'accident :</strong> {{ accident.get_category_display|default:accident.category|default:"-" }}</p>
-      <p><strong>Impact principal :</strong> {{ accident.get_impact_display|default:accident.impact|default:"-" }}</p>
+      
       <p><strong>Type d'engin :</strong> {{ accident.device_type|default:"-" }}</p>
       <p><strong>Statut de l'engin :</strong> {{ accident.device_status|default:"-" }}</p>
       <p><strong>L'engin est-il marqué ? :</strong> {{ accident.device_marked|default:"-" }}</p>
@@ -315,7 +315,7 @@
   <div class="card shadow-sm mb-4 section-card">
     <div class="card-body info-grid">
       <h5>Source d'information</h5>
-      <p><strong>Source / rapporté par :</strong> {{ accident.source_name|default:"-" }}</p>
+     
       <p><strong>Contact source :</strong> {{ accident.source_contact|default:"-" }}</p>
       <p><strong>Nom source :</strong> {{ accident.source_last_name|default:"-" }}</p>
       <p><strong>Prénom source :</strong> {{ accident.source_first_name|default:"-" }}</p>
