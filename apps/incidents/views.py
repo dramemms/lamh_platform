@@ -1129,16 +1129,17 @@ def kobo_accident_webhook(request):
         print("KOBO ACCIDENT DATA:", data)
 
         accident_date_value = get_kobo_value(
-    data,
-    "accident_details/accident_date",
-    "accident_date",
-    "date_accident",
-    "date",
-    "1.2. Date de l'accident",
-    "1.2.  Date de l'accident",
-    "g_report/date_accident",
-    "g_accident/date_accident",
-)
+            data,
+            "accident_details/accident_date",
+            "accident_date",
+            "date_accident",
+            "date",
+            "1.2. Date de l'accident",
+            "1.2.  Date de l'accident",
+            "g_report/date_accident",
+            "g_accident/date_accident",
+        )
+
         accident_date = parse_kobo_date(accident_date_value)
 
         if not accident_date:
@@ -1156,16 +1157,17 @@ def kobo_accident_webhook(request):
             or data.get("meta/instanceID")
         )
 
-    reference = get_kobo_value(
-    data,
-    "reporting/accident_id",
-    "reference",
-    "accident_id",
-          "g_report/accident_id",
-         "1.1. ID de l'accident",
+        reference = get_kobo_value(
+            data,
+            "reporting/accident_id",
+            "reference",
+            "accident_id",
+            "g_report/accident_id",
+            "1.1. ID de l'accident",
             "1.1.  ID de l'accident",
-            ) or f"ACC-{kobo_id}"
-    Accident.objects.update_or_create(
+        ) or f"ACC-{kobo_id}"
+
+        Accident.objects.update_or_create(
             kobo_submission_id=str(kobo_id),
             defaults={
                 "reference": reference,
