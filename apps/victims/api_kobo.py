@@ -224,13 +224,13 @@ def kobo_victim_webhook(request):
             region=region,
             cercle=cercle,
             commune=commune,
-            village=(
-                data.get("g_location/village")
-                or data.get("g_location/village_quartier")
-                or data.get("g_location/localite")
-            ),
+            village_quartier=(
+    data.get("g_location/village")
+    or data.get("g_location/village_quartier")
+    or data.get("g_location/localite")
+),
 
-            location_gps=gps_value,
+            
             latitude=latitude,
             longitude=longitude,
 
