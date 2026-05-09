@@ -246,7 +246,7 @@ def kobo_victim_webhook(request):
             kobo_submission_id=data.get("_id"),
             kobo_uuid=data.get("_uuid"),
 
-            submitted_at_kobo=submitted_at_kobo,
+            
 
             status=Victim.STATUS_SUBMITTED,
 
