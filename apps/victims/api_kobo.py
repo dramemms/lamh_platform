@@ -1,416 +1,537 @@
 # apps/victims/api_kobo.py
 
 import json
+import uuid
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.utils.dateparse import parse_date
+from django.utils import timezone
 
-from apps.geo.models import Region, Cercle, Commune
+from apps.victims.models import Victim
 from apps.incidents.models import Accident
-from .models import Victim
+from apps.geo.models import Region, Cercle, Commune
 
 
-# =========================================================
-# HELPERS
-# =========================================================
-
-def get_value(data, *keys, default=None):
+def val(data, *keys, default=None):
+    """
+    Retourne la première valeur trouvée.
+    """
     for key in keys:
         value = data.get(key)
 
-        if value not in [None, ""]:
+        if value not in [None, "", "null"]:
             return value
 
     return default
 
 
-def to_bool(value):
+def parse_bool(value):
+    if value in [True, "true", "True", "oui", "Oui", "yes", "1", 1]:
+        return True
 
-    if value is None:
-        return False
+    return False
 
-    return str(value).strip().lower() in [
-        "yes",
-        "true",
-        "1",
-        "oui",
-        "o",
-    ]
-
-
-def to_int(value):
-
-    try:
-
-        if value in [None, ""]:
-            return None
-
-        return int(value)
-
-    except Exception:
-        return None
-
-
-def parse_gps(value):
-
-    if not value:
-        return None, None
-
-    try:
-
-        parts = str(value).split()
-
-        if len(parts) >= 2:
-            return float(parts[0]), float(parts[1])
-
-    except Exception:
-        pass
-
-    return None, None
-
-
-def get_obj_by_code_or_name(model, value):
-
-    if not value:
-        return None
-
-    value = str(value).strip()
-
-    obj = model.objects.filter(code=value).first()
-
-    if obj:
-        return obj
-
-    obj = model.objects.filter(name__iexact=value).first()
-
-    return obj
-
-
-# =========================================================
-# WEBHOOK VICTIM
-# =========================================================
 
 @csrf_exempt
-@require_POST
 def kobo_victim_webhook(request):
 
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-
-    except Exception:
+    if request.method != "POST":
         return JsonResponse(
-            {"error": "Invalid JSON"},
-            status=400
+            {"error": "Méthode non autorisée"},
+            status=405
         )
-
-    print("\n================ KOBO VICTIM WEBHOOK ================\n")
-    print(json.dumps(data, indent=2, ensure_ascii=False))
-
-    # =====================================================
-    # ACCIDENT
-    # =====================================================
-
-    accident_ref = get_value(
-        data,
-        "accident_id",
-        "g_report/accident_id",
-        "accident_reference",
-        "id_accident",
-    )
-
-    if not accident_ref:
-
-        return JsonResponse(
-            {"error": "accident_id manquant"},
-            status=400
-        )
-
-    accident = Accident.objects.filter(
-        reference=accident_ref
-    ).first()
-
-    if not accident:
-
-        return JsonResponse(
-            {
-                "error": "Accident introuvable",
-                "reference": accident_ref,
-            },
-            status=400,
-        )
-
-    # =====================================================
-    # GEO
-    # =====================================================
-
-    region = get_obj_by_code_or_name(
-        Region,
-        get_value(data, "region", "g_location/region"),
-    )
-
-    cercle = get_obj_by_code_or_name(
-        Cercle,
-        get_value(data, "cercle", "g_location/cercle"),
-    )
-
-    commune = get_obj_by_code_or_name(
-        Commune,
-        get_value(data, "commune", "g_location/commune"),
-    )
-
-    # Auto récupération cercle / région
-
-    if commune and not cercle:
-        cercle = commune.cercle
-
-    if cercle and not region:
-        region = cercle.region
-
-    # =====================================================
-    # GPS
-    # =====================================================
-
-    gps_value = get_value(
-        data,
-        "location_gps",
-        "g_location/location_gps",
-    )
-
-    latitude = get_value(data, "latitude")
-    longitude = get_value(data, "longitude")
-
-    if not latitude or not longitude:
-        latitude, longitude = parse_gps(gps_value)
-
-    # =====================================================
-    # VICTIM ID
-    # =====================================================
-
-    victim_id = get_value(
-        data,
-        "victim_id",
-        "code_victime",
-        "g_identite/code_victime",
-    )
-
-    if not victim_id:
-        victim_id = f"VIC-{str(data.get('_id'))[-6:]}"
-
-    # =====================================================
-    # NOMS VICTIME
-    # =====================================================
-
-    victim_last_name = get_value(
-        data,
-        "victim_last_name",
-        "nom_victime",
-        "q1_5",
-    )
-
-    if not victim_last_name:
-        victim_last_name = "Non renseigné"
-
-    victim_first_name = get_value(
-        data,
-        "victim_first_name",
-        "prenom_victime",
-        "q1_6",
-    )
-
-    # =====================================================
-    # DATE KOBO
-    # =====================================================
-
-    submitted_at_kobo = get_value(
-        data,
-        "_submission_time",
-        "_date_modified",
-        "end",
-    )
-
-    # =====================================================
-    # CREATE
-    # =====================================================
 
     try:
+
+        payload = json.loads(request.body.decode("utf-8"))
+
+        # =====================================================
+        # DONNÉES KOBO
+        # =====================================================
+
+        data = payload.get("data", payload)
+
+        # =====================================================
+        # ACCIDENT
+        # =====================================================
+
+        accident_reference = val(
+            data,
+            "accident_id",
+            "g_accident/accident_id",
+            "q1_3",
+        )
+
+        if not accident_reference:
+            return JsonResponse(
+                {"error": "accident_id manquant"},
+                status=400
+            )
+
+        try:
+            accident = Accident.objects.get(
+                reference=accident_reference
+            )
+
+        except Accident.DoesNotExist:
+            return JsonResponse(
+                {
+                    "error": f"Accident introuvable : {accident_reference}"
+                },
+                status=400
+            )
+
+        # =====================================================
+        # GEO
+        # =====================================================
+
+        region_name = val(
+            data,
+            "region",
+            "g_localisation/region",
+            "q_region",
+        )
+
+        cercle_name = val(
+            data,
+            "cercle",
+            "g_localisation/cercle",
+            "q_cercle",
+        )
+
+        commune_name = val(
+            data,
+            "commune",
+            "g_localisation/commune",
+            "q_commune",
+        )
+
+        region = None
+        cercle = None
+        commune = None
+
+        if region_name:
+            region = Region.objects.filter(
+                name__iexact=region_name
+            ).first()
+
+        if cercle_name:
+            cercle = Cercle.objects.filter(
+                name__iexact=cercle_name
+            ).first()
+
+        if commune_name:
+            commune = Commune.objects.filter(
+                name__iexact=commune_name
+            ).first()
+
+        # =====================================================
+        # ID VICTIME
+        # =====================================================
+
+        kobo_id = str(data.get("_id", ""))
+
+        victim_id = f"VIC-{kobo_id[-6:]}"
+
+        # =====================================================
+        # NOM / PRENOM
+        # =====================================================
+
+        full_name = val(
+            data,
+            "q1_5",
+            "victim_name",
+            "g_identite/nom_complet",
+        )
+
+        victim_last_name = ""
+        victim_first_name = ""
+
+        if full_name:
+
+            parts = full_name.split()
+
+            if len(parts) >= 2:
+                victim_last_name = parts[-1]
+                victim_first_name = " ".join(parts[:-1])
+
+            else:
+                victim_last_name = full_name
+
+        else:
+
+            victim_last_name = val(
+                data,
+                "last_name",
+                "victim_last_name",
+                "g_identite/nom",
+                default="-"
+            )
+
+            victim_first_name = val(
+                data,
+                "first_name",
+                "victim_first_name",
+                "g_identite/prenom",
+                default="-"
+            )
+
+        # =====================================================
+        # CREATION VICTIME
+        # =====================================================
 
         victim = Victim.objects.create(
 
-            # =========================
-            # SYSTEM
-            # =========================
+            # =================================================
+            # SYSTEME
+            # =================================================
 
-            raw_payload=data,
+            uuid=str(uuid.uuid4()),
+            raw_data=data,
 
             kobo_submission_id=data.get("_id"),
             kobo_uuid=data.get("_uuid"),
 
-            
+            submitted_at=timezone.now(),
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
 
             status=Victim.STATUS_SUBMITTED,
 
-            # =========================
-            # ACCIDENT
-            # =========================
-
-            accident=accident,
-            accident_reference=accident_ref,
-
-            # =========================
+            # =================================================
             # IDENTITE
-            # =========================
+            # =================================================
 
             victim_id=victim_id,
 
             victim_last_name=victim_last_name,
             victim_first_name=victim_first_name,
 
-            victim_age=to_int(
-                get_value(
-                    data,
-                    "victim_age",
-                    "age_victime",
-                )
-            ),
-
-            victim_sex=get_value(
+            victim_gender=val(
                 data,
-                "victim_sex",
-                "sexe_victime",
+                "gender",
+                "sex",
+                "g_identite/sexe",
             ),
 
-            outcome_type=get_value(
+            victim_age=val(
+                data,
+                "age",
+                "g_identite/age",
+            ),
+
+            victim_type=val(
+                data,
+                "victim_type",
+                "g_identite/type_victime",
+            ),
+
+            outcome_type=val(
                 data,
                 "outcome_type",
-                "situation_victime",
+                "g_identite/issue",
             ),
 
-            # =========================
-            # SOURCE
-            # =========================
-
-            info_source=get_value(
-                data,
-                "info_source",
-                "source",
-            ),
-
-            source_last_name=get_value(
-                data,
-                "source_last_name",
-                "nom_source",
-            ),
-
-            source_first_name=get_value(
-                data,
-                "source_first_name",
-                "prenom_source",
-            ),
-
-            source_contact=get_value(
-                data,
-                "source_contact",
-                "contact_source",
-            ),
-
-            source_age=to_int(
-                get_value(
+            consent_given=parse_bool(
+                val(
                     data,
-                    "source_age",
-                    "age_source",
+                    "consent",
+                    "g_identite/consentement",
                 )
             ),
 
-            source_sex=get_value(
+            father_name=val(
                 data,
-                "source_sex",
-                "sexe_source",
+                "father_name",
+                "g_identite/nom_pere",
             ),
 
-            # =========================
-            # LOCATION
-            # =========================
+            mother_name=val(
+                data,
+                "mother_name",
+                "g_identite/nom_mere",
+            ),
 
-            country=get_value(
+            nationality=val(
+                data,
+                "nationality",
+                "g_identite/nationalite",
+            ),
+
+            marital_status=val(
+                data,
+                "marital_status",
+                "g_identite/statut_matrimonial",
+            ),
+
+            profession_before=val(
+                data,
+                "profession_before",
+                "g_identite/profession_avant",
+            ),
+
+            profession_after=val(
+                data,
+                "profession_after",
+                "g_identite/profession_apres",
+            ),
+
+            # =================================================
+            # ACCIDENT
+            # =================================================
+
+            accident=accident,
+            accident_reference=accident.reference,
+
+            activity=val(
+                data,
+                "activity",
+                "g_contexte/activite",
+            ),
+
+            dangerous_area=parse_bool(
+                val(
+                    data,
+                    "dangerous_area",
+                    "g_contexte/zone_dangereuse",
+                )
+            ),
+
+            entry_reason=val(
+                data,
+                "entry_reason",
+                "g_contexte/raison_entree",
+            ),
+
+            object_seen=parse_bool(
+                val(
+                    data,
+                    "object_seen",
+                    "g_contexte/objet_vu",
+                )
+            ),
+
+            explosion_cause=val(
+                data,
+                "explosion_cause",
+                "g_contexte/cause_explosion",
+            ),
+
+            alpc_type=val(
+                data,
+                "alpc_type",
+                "g_contexte/type_alpc",
+            ),
+
+            # =================================================
+            # SANTE
+            # =================================================
+
+            emergency_evacuation=parse_bool(
+                val(
+                    data,
+                    "emergency_evacuation",
+                    "g_sante/evacuation_urgence",
+                )
+            ),
+
+            prior_erw_session=parse_bool(
+                val(
+                    data,
+                    "session_er_avant",
+                    "g_sante/session_er_avant",
+                )
+            ),
+
+            post_erw_session=parse_bool(
+                val(
+                    data,
+                    "session_er_apres",
+                    "g_sante/session_er_apres",
+                )
+            ),
+
+            preexisting_disability=parse_bool(
+                val(
+                    data,
+                    "handicap_preexistant",
+                    "g_sante/handicap_preexistant",
+                )
+            ),
+
+            injury_type=val(
+                data,
+                "type_blessure",
+                "g_sante/type_blessure",
+            ),
+
+            body_part_loss=val(
+                data,
+                "perte_de",
+                "g_sante/perte_de",
+            ),
+
+            injury_description=val(
+                data,
+                "description_blessure",
+                "g_sante/description_blessure",
+            ),
+
+            health_structure=val(
+                data,
+                "structure_sante",
+                "g_sante/structure_sante",
+            ),
+
+            medical_care=parse_bool(
+                val(
+                    data,
+                    "prise_charge_medicale",
+                    "g_sante/prise_charge_medicale",
+                )
+            ),
+
+            non_medical_care=parse_bool(
+                val(
+                    data,
+                    "prise_charge_non_medicale",
+                    "g_sante/prise_charge_non_medicale",
+                )
+            ),
+
+            # =================================================
+            # SOURCE
+            # =================================================
+
+            source=val(
+                data,
+                "source",
+                "g_source/source",
+            ),
+
+            source_other=val(
+                data,
+                "source_other",
+                "g_source/autre_source",
+            ),
+
+            source_last_name=val(
+                data,
+                "source_last_name",
+                "g_source/nom",
+            ),
+
+            source_first_name=val(
+                data,
+                "source_first_name",
+                "g_source/prenom",
+            ),
+
+            source_contact=val(
+                data,
+                "source_contact",
+                "g_source/contact",
+            ),
+
+            source_gender=val(
+                data,
+                "source_gender",
+                "g_source/sexe",
+            ),
+
+            source_age=val(
+                data,
+                "source_age",
+                "g_source/age",
+            ),
+
+            # =================================================
+            # LOCALISATION
+            # =================================================
+
+            country=val(
                 data,
                 "country",
-                "pays",
+                "g_localisation/pays",
             ),
 
             region=region,
             cercle=cercle,
             commune=commune,
 
-            village_quartier=get_value(
+            village=val(
                 data,
-                "village_quartier",
                 "village",
-                "quartier",
-                "localite",
+                "g_localisation/village",
             ),
 
-            latitude=latitude,
-            longitude=longitude,
-
-            # =========================
-            # CONTEXTE
-            # =========================
-
-            activity_at_accident=get_value(
+            latitude=val(
                 data,
-                "activity_at_accident",
-                "activite",
+                "latitude",
+                "g_localisation/latitude",
             ),
 
-            blast_cause=get_value(
+            longitude=val(
                 data,
-                "blast_cause",
-                "cause_explosion",
+                "longitude",
+                "g_localisation/longitude",
             ),
 
-            # =========================
-            # MEDICAL
-            # =========================
-
-            health_structure=get_value(
+            location_details=val(
                 data,
-                "health_structure",
-                "structure_sante",
+                "location_details",
+                "g_localisation/details_emplacement",
             ),
 
-            medical_care=to_bool(
-                get_value(
-                    data,
-                    "medical_care",
-                    "prise_charge_medicale",
+            # =================================================
+            # REPORTING
+            # =================================================
+
+            report_date=parse_date(
+                str(
+                    val(
+                        data,
+                        "q1_2",
+                        "report_date",
+                    )
                 )
             ),
 
-            non_medical_care=to_bool(
-                get_value(
-                    data,
-                    "non_medical_care",
-                    "prise_charge_non_medicale",
-                )
+            reported_by=val(
+                data,
+                "reported_by",
+                "reporter_name",
             ),
+
+            org_name=val(
+                data,
+                "organization",
+                "org_name",
+            ),
+
+            position=val(
+                data,
+                "position",
+                "poste",
+            ),
+
+            team=val(
+                data,
+                "team",
+                "equipe",
+            ),
+
         )
 
-        return JsonResponse(
-            {
-                "status": "success",
-                "victim_pk": victim.pk,
-                "victim_id": victim.victim_id,
-            },
-            status=201,
-        )
+        return JsonResponse({
+            "success": True,
+            "victim_id": victim.victim_id,
+        })
 
     except Exception as e:
 
-        print("\n================ ERREUR WEBHOOK VICTIM ================\n")
-        print(str(e))
-
         return JsonResponse(
             {"error": str(e)},
-            status=400,
+            status=400
         )
