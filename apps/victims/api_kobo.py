@@ -156,7 +156,14 @@ def kobo_victim_webhook(request):
             accident=accident,
             accident_reference=accident_ref,
 
-            victim_id=data.get("g_report/victim_id"),
+            victim_id=(
+    data.get("g_report/victim_id")
+    or data.get("victim_id")
+    or data.get("code_victime")
+    or data.get("g_identite/code_victime")
+    or data.get("q1_1")
+    or f"VIC-{str(data.get('_id'))[-6:]}"
+),
             report_date=data.get("g_report/report_date"),
 
             reported_by=data.get("g_report/reported_by"),
