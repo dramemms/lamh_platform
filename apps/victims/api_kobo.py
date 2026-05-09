@@ -1,537 +1,215 @@
 # apps/victims/api_kobo.py
 
 import json
-import uuid
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_date
-from django.utils import timezone
 
-from apps.victims.models import Victim
+from apps.geo.models import Cercle, Commune, Region
 from apps.incidents.models import Accident
-from apps.geo.models import Region, Cercle, Commune
+from apps.victims.models import Victim
 
 
 def val(data, *keys, default=None):
-    """
-    Retourne la première valeur trouvée.
-    """
     for key in keys:
         value = data.get(key)
-
         if value not in [None, "", "null"]:
             return value
-
     return default
 
 
 def parse_bool(value):
-    if value in [True, "true", "True", "oui", "Oui", "yes", "1", 1]:
-        return True
+    return str(value).strip().lower() in [
+        "true", "oui", "yes", "1", "o", "y"
+    ]
 
-    return False
+
+def parse_int(value):
+    try:
+        if value in [None, "", "null"]:
+            return None
+        return int(value)
+    except Exception:
+        return None
+
+
+def get_obj_by_code_or_name(model, value):
+    if not value:
+        return None
+
+    value = str(value).strip()
+
+    obj = model.objects.filter(code=value).first()
+    if obj:
+        return obj
+
+    return model.objects.filter(name__iexact=value).first()
+
+
+def only_existing_fields(model, values):
+    model_fields = {field.name for field in model._meta.fields}
+    return {
+        key: value
+        for key, value in values.items()
+        if key in model_fields
+    }
 
 
 @csrf_exempt
 def kobo_victim_webhook(request):
 
     if request.method != "POST":
-        return JsonResponse(
-            {"error": "Méthode non autorisée"},
-            status=405
-        )
+        return JsonResponse({"error": "Méthode non autorisée"}, status=405)
 
     try:
-
         payload = json.loads(request.body.decode("utf-8"))
-
-        # =====================================================
-        # DONNÉES KOBO
-        # =====================================================
-
         data = payload.get("data", payload)
-
-        # =====================================================
-        # ACCIDENT
-        # =====================================================
 
         accident_reference = val(
             data,
             "accident_id",
-            "g_accident/accident_id",
+            "g_report/accident_id",
+            "g_identite/accident_id",
+            "accident_reference",
+            "id_accident",
             "q1_3",
         )
 
         if not accident_reference:
+            return JsonResponse({"error": "accident_id manquant"}, status=400)
+
+        accident = Accident.objects.filter(reference=accident_reference).first()
+
+        if not accident:
             return JsonResponse(
-                {"error": "accident_id manquant"},
-                status=400
+                {"error": f"Accident introuvable : {accident_reference}"},
+                status=400,
             )
 
-        try:
-            accident = Accident.objects.get(
-                reference=accident_reference
-            )
-
-        except Accident.DoesNotExist:
-            return JsonResponse(
-                {
-                    "error": f"Accident introuvable : {accident_reference}"
-                },
-                status=400
-            )
-
-        # =====================================================
-        # GEO
-        # =====================================================
-
-        region_name = val(
-            data,
-            "region",
-            "g_localisation/region",
-            "q_region",
+        region = get_obj_by_code_or_name(
+            Region,
+            val(data, "region", "g_location/region", "g_localisation/region", "q4_2"),
         )
 
-        cercle_name = val(
-            data,
-            "cercle",
-            "g_localisation/cercle",
-            "q_cercle",
+        cercle = get_obj_by_code_or_name(
+            Cercle,
+            val(data, "cercle", "g_location/cercle", "g_localisation/cercle", "q4_3"),
         )
 
-        commune_name = val(
-            data,
-            "commune",
-            "g_localisation/commune",
-            "q_commune",
+        commune = get_obj_by_code_or_name(
+            Commune,
+            val(data, "commune", "g_location/commune", "g_localisation/commune", "q4_4"),
         )
 
-        region = None
-        cercle = None
-        commune = None
+        if commune and not cercle:
+            cercle = commune.cercle
 
-        if region_name:
-            region = Region.objects.filter(
-                name__iexact=region_name
-            ).first()
-
-        if cercle_name:
-            cercle = Cercle.objects.filter(
-                name__iexact=cercle_name
-            ).first()
-
-        if commune_name:
-            commune = Commune.objects.filter(
-                name__iexact=commune_name
-            ).first()
-
-        # =====================================================
-        # ID VICTIME
-        # =====================================================
+        if cercle and not region:
+            region = cercle.region
 
         kobo_id = str(data.get("_id", ""))
 
-        victim_id = f"VIC-{kobo_id[-6:]}"
-
-        # =====================================================
-        # NOM / PRENOM
-        # =====================================================
-
-        full_name = val(
+        victim_id = val(
             data,
-            "q1_5",
-            "victim_name",
-            "g_identite/nom_complet",
+            "victim_id",
+            "id_victime",
+            "code_victime",
+            "g_report/victim_id",
+            "q1_1",
+            default=f"VIC-{kobo_id[-6:]}",
         )
 
-        victim_last_name = ""
-        victim_first_name = ""
-
-        if full_name:
-
-            parts = full_name.split()
-
-            if len(parts) >= 2:
-                victim_last_name = parts[-1]
-                victim_first_name = " ".join(parts[:-1])
-
-            else:
-                victim_last_name = full_name
-
-        else:
-
-            victim_last_name = val(
-                data,
-                "last_name",
-                "victim_last_name",
-                "g_identite/nom",
-                default="-"
-            )
-
-            victim_first_name = val(
-                data,
-                "first_name",
-                "victim_first_name",
-                "g_identite/prenom",
-                default="-"
-            )
-
-        # =====================================================
-        # CREATION VICTIME
-        # =====================================================
-
-        victim = Victim.objects.create(
-
-            # =================================================
-            # SYSTEME
-            # =================================================
-
-            uuid=str(uuid.uuid4()),
-            raw_data=data,
-
-            kobo_submission_id=data.get("_id"),
-            kobo_uuid=data.get("_uuid"),
-
-            submitted_at=timezone.now(),
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
-
-            status=Victim.STATUS_SUBMITTED,
-
-            # =================================================
-            # IDENTITE
-            # =================================================
-
-            victim_id=victim_id,
-
-            victim_last_name=victim_last_name,
-            victim_first_name=victim_first_name,
-
-            victim_gender=val(
-                data,
-                "gender",
-                "sex",
-                "g_identite/sexe",
-            ),
-
-            victim_age=val(
-                data,
-                "age",
-                "g_identite/age",
-            ),
-
-            victim_type=val(
-                data,
-                "victim_type",
-                "g_identite/type_victime",
-            ),
-
-            outcome_type=val(
-                data,
-                "outcome_type",
-                "g_identite/issue",
-            ),
-
-            consent_given=parse_bool(
-                val(
-                    data,
-                    "consent",
-                    "g_identite/consentement",
-                )
-            ),
-
-            father_name=val(
-                data,
-                "father_name",
-                "g_identite/nom_pere",
-            ),
-
-            mother_name=val(
-                data,
-                "mother_name",
-                "g_identite/nom_mere",
-            ),
-
-            nationality=val(
-                data,
-                "nationality",
-                "g_identite/nationalite",
-            ),
-
-            marital_status=val(
-                data,
-                "marital_status",
-                "g_identite/statut_matrimonial",
-            ),
-
-            profession_before=val(
-                data,
-                "profession_before",
-                "g_identite/profession_avant",
-            ),
-
-            profession_after=val(
-                data,
-                "profession_after",
-                "g_identite/profession_apres",
-            ),
-
-            # =================================================
-            # ACCIDENT
-            # =================================================
-
-            accident=accident,
-            accident_reference=accident.reference,
-
-            activity=val(
-                data,
-                "activity",
-                "g_contexte/activite",
-            ),
-
-            dangerous_area=parse_bool(
-                val(
-                    data,
-                    "dangerous_area",
-                    "g_contexte/zone_dangereuse",
-                )
-            ),
-
-            entry_reason=val(
-                data,
-                "entry_reason",
-                "g_contexte/raison_entree",
-            ),
-
-            object_seen=parse_bool(
-                val(
-                    data,
-                    "object_seen",
-                    "g_contexte/objet_vu",
-                )
-            ),
-
-            explosion_cause=val(
-                data,
-                "explosion_cause",
-                "g_contexte/cause_explosion",
-            ),
-
-            alpc_type=val(
-                data,
-                "alpc_type",
-                "g_contexte/type_alpc",
-            ),
-
-            # =================================================
-            # SANTE
-            # =================================================
-
-            emergency_evacuation=parse_bool(
-                val(
-                    data,
-                    "emergency_evacuation",
-                    "g_sante/evacuation_urgence",
-                )
-            ),
-
-            prior_erw_session=parse_bool(
-                val(
-                    data,
-                    "session_er_avant",
-                    "g_sante/session_er_avant",
-                )
-            ),
-
-            post_erw_session=parse_bool(
-                val(
-                    data,
-                    "session_er_apres",
-                    "g_sante/session_er_apres",
-                )
-            ),
-
-            preexisting_disability=parse_bool(
-                val(
-                    data,
-                    "handicap_preexistant",
-                    "g_sante/handicap_preexistant",
-                )
-            ),
-
-            injury_type=val(
-                data,
-                "type_blessure",
-                "g_sante/type_blessure",
-            ),
-
-            body_part_loss=val(
-                data,
-                "perte_de",
-                "g_sante/perte_de",
-            ),
-
-            injury_description=val(
-                data,
-                "description_blessure",
-                "g_sante/description_blessure",
-            ),
-
-            health_structure=val(
-                data,
-                "structure_sante",
-                "g_sante/structure_sante",
-            ),
-
-            medical_care=parse_bool(
-                val(
-                    data,
-                    "prise_charge_medicale",
-                    "g_sante/prise_charge_medicale",
-                )
-            ),
-
-            non_medical_care=parse_bool(
-                val(
-                    data,
-                    "prise_charge_non_medicale",
-                    "g_sante/prise_charge_non_medicale",
-                )
-            ),
-
-            # =================================================
-            # SOURCE
-            # =================================================
-
-            source=val(
-                data,
-                "source",
-                "g_source/source",
-            ),
-
-            source_other=val(
-                data,
-                "source_other",
-                "g_source/autre_source",
-            ),
-
-            source_last_name=val(
-                data,
-                "source_last_name",
-                "g_source/nom",
-            ),
-
-            source_first_name=val(
-                data,
-                "source_first_name",
-                "g_source/prenom",
-            ),
-
-            source_contact=val(
-                data,
-                "source_contact",
-                "g_source/contact",
-            ),
-
-            source_gender=val(
-                data,
-                "source_gender",
-                "g_source/sexe",
-            ),
-
-            source_age=val(
-                data,
-                "source_age",
-                "g_source/age",
-            ),
-
-            # =================================================
-            # LOCALISATION
-            # =================================================
-
-            country=val(
-                data,
-                "country",
-                "g_localisation/pays",
-            ),
-
-            region=region,
-            cercle=cercle,
-            commune=commune,
-
-            village=val(
-                data,
-                "village",
-                "g_localisation/village",
-            ),
-
-            latitude=val(
-                data,
-                "latitude",
-                "g_localisation/latitude",
-            ),
-
-            longitude=val(
-                data,
-                "longitude",
-                "g_localisation/longitude",
-            ),
-
-            location_details=val(
-                data,
-                "location_details",
-                "g_localisation/details_emplacement",
-            ),
-
-            # =================================================
-            # REPORTING
-            # =================================================
-
-            report_date=parse_date(
-                str(
-                    val(
-                        data,
-                        "q1_2",
-                        "report_date",
-                    )
-                )
-            ),
-
-            reported_by=val(
-                data,
-                "reported_by",
-                "reporter_name",
-            ),
-
-            org_name=val(
-                data,
-                "organization",
-                "org_name",
-            ),
-
-            position=val(
-                data,
-                "position",
-                "poste",
-            ),
-
-            team=val(
-                data,
-                "team",
-                "equipe",
-            ),
-
-        )
-
-        return JsonResponse({
-            "success": True,
-            "victim_id": victim.victim_id,
-        })
-
-    except Exception as e:
+        values = {
+            # Système
+            "raw_payload": data,
+            "kobo_submission_id": data.get("_id"),
+            "kobo_uuid": data.get("_uuid"),
+            "status": Victim.STATUS_SUBMITTED,
+
+            # Accident
+            "accident": accident,
+            "accident_reference": accident.reference,
+
+            # Reporting
+            "victim_id": victim_id,
+            "report_date": parse_date(str(val(data, "q1_2", "report_date") or "")),
+            "reported_by": val(data, "q1_5", "reported_by"),
+            "reporting_org": val(data, "q1_6", "reporting_org"),
+            "reporting_position": val(data, "q1_7", "reporting_position"),
+            "reporting_team": val(data, "q1_8", "reporting_team"),
+
+            # Identité victime
+            "consentement": parse_bool(val(data, "q2_1", "consentement")),
+            "victim_last_name": val(data, "q2_2", "victim_last_name", "nom_victime", default="Non renseigné"),
+            "victim_first_name": val(data, "q2_3", "victim_first_name", "prenom_victime"),
+            "victim_type": val(data, "q2_4", "victim_type"),
+            "father_name": val(data, "q2_5", "father_name"),
+            "mother_name": val(data, "q2_6", "mother_name"),
+            "nationality": val(data, "q2_7", "nationality"),
+            "marital_status": val(data, "q2_8", "marital_status"),
+            "profession_before": val(data, "q2_9", "profession_before"),
+            "profession_after": val(data, "q2_10", "profession_after"),
+            "outcome_type": val(data, "q2_11", "outcome_type"),
+            "birth_date_known": parse_bool(val(data, "q2_12", "birth_date_known")),
+            "birth_date": parse_date(str(val(data, "q2_12_1", "birth_date") or "")),
+            "victim_age": parse_int(val(data, "_2_12_3_ge", "q2_12_3", "victim_age")),
+            "victim_sex": val(data, "q2_13", "victim_sex"),
+            "main_breadwinner": parse_bool(val(data, "q2_14", "main_breadwinner")),
+            "dependents_count": parse_int(val(data, "q2_15", "dependents_count")),
+            "urgent_medical_evac": parse_bool(val(data, "q2_16", "urgent_medical_evac")),
+            "victim_contact": val(data, "q2_17", "victim_contact"),
+
+            # Contexte accident
+            "activity_at_accident": val(data, "q2_18", "activity_at_accident"),
+            "knew_danger_zone": parse_bool(val(data, "q2_19", "knew_danger_zone")),
+            "reason_enter_zone": val(data, "q2_20", "reason_enter_zone"),
+            "times_entered_zone": parse_int(val(data, "q2_21", "times_entered_zone")),
+            "saw_object": parse_bool(val(data, "q2_22", "saw_object")),
+            "blast_cause": val(data, "q2_23", "blast_cause"),
+            "alpc_type": val(data, "q2_23_2", "alpc_type"),
+
+            # Santé / prise en charge
+            "received_er_before": parse_bool(val(data, "q2_24", "received_er_before")),
+            "received_er_after": parse_bool(val(data, "q2_25", "received_er_after")),
+            "pre_existing_disability": parse_bool(val(data, "q2_27", "pre_existing_disability")),
+            "injury_type": val(data, "q2_28", "injury_type"),
+            "loss_of": val(data, "q2_29", "loss_of"),
+            "injury_description": val(data, "q2_30", "injury_description"),
+            "health_structure": val(data, "q2_31", "health_structure"),
+            "medical_care": parse_bool(val(data, "q2_32", "medical_care")),
+            "non_medical_care": parse_bool(val(data, "q2_35", "non_medical_care")),
+
+            # Source
+            "info_source": val(data, "q3_1", "info_source"),
+            "source_age": parse_int(val(data, "q3_2", "source_age")),
+            "source_last_name": val(data, "q3_2_2", "source_last_name"),
+            "source_first_name": val(data, "q3_3", "source_first_name"),
+            "source_contact": val(data, "q3_4", "source_contact"),
+            "source_sex": val(data, "q3_5", "source_sex"),
+
+            # Localisation
+            "country": val(data, "q4_1", "country", "pays"),
+            "region": region,
+            "cercle": cercle,
+            "commune": commune,
+            "village_quartier": val(data, "q4_5", "village_quartier", "village", "quartier"),
+            "latitude": val(data, "latitude", "g_location/latitude"),
+            "longitude": val(data, "longitude", "logitude", "g_location/longitude"),
+        }
+
+        values = only_existing_fields(Victim, values)
+
+        victim = Victim.objects.create(**values)
 
         return JsonResponse(
-            {"error": str(e)},
-            status=400
+            {
+                "success": True,
+                "victim_pk": victim.pk,
+                "victim_id": victim.victim_id,
+            },
+            status=201,
         )
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
