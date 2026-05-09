@@ -1185,7 +1185,13 @@ def victim_add_assistance_kobo(request, pk):
 
     accident = victim.accident
 
-    params = urlencode({
+        params = urlencode({
+
+        "d[g_identite/accident_id]": (
+            safe_get(accident, "reference")
+            if accident else ""
+        ),
+
         "d[g_identite/code_victime]": safe_get(victim, "victim_id"),
         "d[g_identite/nom_victime]": safe_get(victim, "victim_last_name", "last_name"),
         "d[g_identite/prenom_victime]": safe_get(victim, "victim_first_name", "first_name"),
@@ -1223,80 +1229,3 @@ def victim_add_assistance_kobo(request, pk):
         ),
     })
 
-    separator = "&" if "?" in kobo_url else "?"
-    final_url = f"{kobo_url}{separator}{params}"
-
-    return redirect(final_url)
-
-params = urlencode({
-
-    "d[g_identite/accident_id]": (
-        safe_get(accident, "reference")
-        if accident else ""
-    ),
-
-    "d[g_identite/code_victime]": safe_get(
-        victim,
-        "victim_id"
-    ),
-
-    "d[g_identite/nom_victime]": safe_get(
-        victim,
-        "victim_last_name",
-        "last_name"
-    ),
-
-    "d[g_identite/prenom_victime]": safe_get(
-        victim,
-        "victim_first_name",
-        "first_name"
-    ),
-
-    "d[g_identite/age_victime]": safe_get(
-        victim,
-        "victim_age",
-        "age"
-    ),
-
-    "d[g_identite/sexe_victime]": safe_get(
-        victim,
-        "victim_sex",
-        "gender",
-        "sex"
-    ),
-
-    "d[g_identite/situation_victime]": safe_get(
-        victim,
-        "outcome_type",
-        "victim_type"
-    ),
-
-    "d[g_identite/categorie_accident]": (
-        safe_get(accident, "category", "accident_type", "type")
-        if accident
-        else safe_get(victim, "alpc_type")
-    ),
-
-    "d[g_identite/date_accident]": (
-        format_kobo_date(
-            safe_get(
-                accident,
-                "accident_date",
-                "date_accident",
-                "incident_date",
-                "event_date",
-            )
-        )
-        if accident
-        else ""
-    ),
-
-    "d[g_identite/date_rapportage]": format_kobo_date(
-        safe_get(
-            victim,
-            "report_date",
-            "reported_at",
-            "submitted_at_kobo",
-        )
-    ),
-})
