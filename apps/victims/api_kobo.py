@@ -106,7 +106,14 @@ def kobo_victim_webhook(request):
     print("=== KOBO VICTIM WEBHOOK ===")
     print(json.dumps(data, indent=2, ensure_ascii=False))
 
-    accident_ref = data.get("g_report/accident_id")
+    accident_ref = (
+    data.get("g_report/accident_id")
+    or data.get("accident_id")
+    or data.get("g_identite/accident_id")
+    or data.get("id_accident")
+    or data.get("g_report/id_accident")
+    or data.get("accident_reference")
+)
     print("Référence accident reçue :", accident_ref)
 
     if not accident_ref:
