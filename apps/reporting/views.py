@@ -79,26 +79,70 @@ def assistance_form(request):
 def kobo_pai_webhook(request):
 
     if request.method == "POST":
-        data = json.loads(request.body.decode("utf-8"))
 
-        print("===== WEBHOOK KOBO PAI =====")
-        print(data)
+        try:
+            data = json.loads(request.body.decode("utf-8"))
 
-        PAIAssistanceSubmission.objects.create(
-            victim_code=data.get("code_victime") or data.get("d/code_victime"),
-            victim_name=data.get("nom_victime") or data.get("d/nom_victime"),
-            assistance_type=data.get("type_assistance") or data.get("d/type_assistance"),
-            raw_data=data,
-        )
+            print("===== WEBHOOK KOBO PAI =====")
+            print(data)
 
-        return JsonResponse({
-            "status": "success",
-            "message": "Données Kobo enregistrées avec succès"
-        })
+            cleaned_data = {}
+
+            # =====================================
+            # NETTOYAGE DES CLES KOBO
+            # d[g_identite/nom] -> g_identite/nom
+            # =====================================
+
+            for key, value in data.items():
+
+                clean_key = key
+
+                if key.startswith("d[") and key.endswith("]"):
+                    clean_key = key[2:-1]
+
+                cleaned_data[clean_key] = value
+
+            # =====================================
+            # ENREGISTREMENT COMPLET
+            # =====================================
+
+            submission = PAIAssistanceSubmission.objects.create(
+
+                victim_code=cleaned_data.get(
+                    "g_identite/code_victime",
+                    ""
+                ),
+
+                victim_name=(
+                    f"{cleaned_data.get('g_identite/nom_victime', '')} "
+                    f"{cleaned_data.get('g_identite/prenom_victime', '')}"
+                ).strip(),
+
+                assistance_type=cleaned_data.get(
+                    "g_assistance/type_assistance",
+                    ""
+                ),
+
+                raw_data=cleaned_data,
+            )
+
+            return JsonResponse({
+                "status": "success",
+                "id": submission.id,
+                "total_fields": len(cleaned_data),
+                "saved_keys": list(cleaned_data.keys()),
+            })
+
+        except Exception as e:
+
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=400)
 
     return JsonResponse({
         "status": "ok",
-        "message": "Webhook PAI actif"
+        "message": "Webhook Kobo PAI actif"
     })
 
 def assistance_detail(request, pk):
