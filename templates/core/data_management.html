@@ -106,19 +106,19 @@
         <div class="data-card">
             <h3>Régions</h3>
             <div class="count">{{ regions_count }}</div>
-            <a href="/admin/geo/region/">Gérer</a>
+            <a href="{% url 'manage_regions' %}">Gérer</a>
         </div>
 
         <div class="data-card">
             <h3>Cercles</h3>
             <div class="count">{{ cercles_count }}</div>
-            <a href="/admin/geo/cercle/">Gérer</a>
+           <a href="{% url 'manage_cercles' %}">Gérer</a>
         </div>
 
         <div class="data-card">
             <h3>Communes</h3>
             <div class="count">{{ communes_count }}</div>
-            <a href="/admin/geo/commune/">Gérer</a>
+           <a href="{% url 'manage_communes' %}">Gérer</a>
         </div>
 
     </div>
