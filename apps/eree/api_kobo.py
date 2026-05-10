@@ -40,12 +40,9 @@ def _find_region(value):
     if not value:
         return None
 
-    try:
-        obj = Region.objects.filter(code=value).first()
-        if obj:
-            return obj
-    except Exception:
-        pass
+    obj = Region.objects.filter(code=value).first()
+    if obj:
+        return obj
 
     obj = Region.objects.filter(name__iexact=value).first()
     if obj:
@@ -63,12 +60,9 @@ def _find_cercle(value, region=None):
     if region:
         qs = qs.filter(region=region)
 
-    try:
-        obj = qs.filter(code=value).first()
-        if obj:
-            return obj
-    except Exception:
-        pass
+    obj = qs.filter(code=value).first()
+    if obj:
+        return obj
 
     obj = qs.filter(name__iexact=value).first()
     if obj:
@@ -86,12 +80,9 @@ def _find_commune(value, cercle=None):
     if cercle:
         qs = qs.filter(cercle=cercle)
 
-    try:
-        obj = qs.filter(code=value).first()
-        if obj:
-            return obj
-    except Exception:
-        pass
+    obj = qs.filter(code=value).first()
+    if obj:
+        return obj
 
     obj = qs.filter(name__iexact=value).first()
     if obj:
@@ -101,10 +92,8 @@ def _find_commune(value, cercle=None):
 
 
 def _extract_gps(data):
-    gps = (
-        data.get("g_session/location_gps")
-        or data.get("location_gps")
-    )
+    gps = data.get("g_session/location_gps") or data.get("location_gps")
+
     if gps:
         try:
             lat, lon, *_ = str(gps).split()
@@ -167,9 +156,6 @@ def kobo_eree_webhook(request):
 
     reference = f"EREE-{submission_id}"
 
-    # =========================
-    # GEO
-    # =========================
     region_value = data.get("g_session/region") or data.get("region")
     cercle_value = data.get("g_session/cercle") or data.get("cercle")
     commune_value = data.get("g_session/commune") or data.get("commune")
@@ -177,6 +163,18 @@ def kobo_eree_webhook(request):
     region = _find_region(region_value)
     cercle = _find_cercle(cercle_value, region=region)
     commune = _find_commune(commune_value, cercle=cercle)
+
+    if not commune and commune_value:
+        commune = _find_commune(commune_value)
+        if commune:
+            cercle = commune.cercle
+            region = commune.cercle.region
+
+    if commune and not cercle:
+        cercle = commune.cercle
+
+    if cercle and not region:
+        region = cercle.region
 
     if not region or not cercle or not commune:
         return JsonResponse(
@@ -193,12 +191,8 @@ def kobo_eree_webhook(request):
             status=400,
         )
 
-    # =========================
-    # DATES
-    # =========================
     session_date = parse_date(
-        data.get("g_session/session_date")
-        or data.get("session_date")
+        data.get("g_session/session_date") or data.get("session_date")
     )
 
     if not session_date:
@@ -214,15 +208,9 @@ def kobo_eree_webhook(request):
     week_to = parse_date(data.get("g_weekly/week_to"))
     quality_date = parse_date(data.get("g_quality/quality_date"))
 
-    # =========================
-    # ORGANISATION / GPS
-    # =========================
     organisation = data.get("g_weekly/organisation") or "Sans organisation"
     location_gps, latitude, longitude = _extract_gps(data)
 
-    # =========================
-    # PARTICIPANTS
-    # =========================
     total_pdi = sum(_to_int(v) for k, v in data.items() if "pdi_" in k)
     total_host = sum(_to_int(v) for k, v in data.items() if "ch_" in k)
 
@@ -236,16 +224,12 @@ def kobo_eree_webhook(request):
         + humanitarian_female
     )
 
-    # =========================
-    # CREATE / UPDATE
-    # =========================
     obj, created = EREESession.objects.update_or_create(
         kobo_submission_id=str(submission_id),
         defaults={
             "reference": reference,
             "title": f"EREE - {organisation}",
 
-            # G_WEEKLY
             "reported_by": data.get("g_weekly/reported_by"),
             "organisation": organisation,
             "narrative_description": data.get("g_weekly/narrative_description"),
@@ -255,7 +239,6 @@ def kobo_eree_webhook(request):
             "month_name": data.get("g_weekly/month_name"),
             "year": _to_int(data.get("g_weekly/year")) or None,
 
-            # G_SESSION
             "session_date": session_date,
             "location_gps": location_gps,
             "latitude": latitude,
@@ -278,7 +261,6 @@ def kobo_eree_webhook(request):
             "humanitarian_female": humanitarian_female,
             "funding_type": data.get("g_session/funding_type"),
 
-            # G_PDI
             "pdi_boys_0_5": _to_int(data.get("g_pdi/pdi_boys_0_5")),
             "pdi_boys_0_5_dis": _to_int(data.get("g_pdi/pdi_boys_0_5_dis")),
             "pdi_girls_0_5": _to_int(data.get("g_pdi/pdi_girls_0_5")),
@@ -308,7 +290,6 @@ def kobo_eree_webhook(request):
             "pdi_women_60_plus": _to_int(data.get("g_pdi/pdi_women_60_plus")),
             "pdi_women_60_plus_dis": _to_int(data.get("g_pdi/pdi_women_60_plus_dis")),
 
-            # G_CH
             "ch_boys_0_5": _to_int(data.get("g_ch/ch_boys_0_5")),
             "ch_boys_0_5_dis": _to_int(data.get("g_ch/ch_boys_0_5_dis")),
             "ch_girls_0_5": _to_int(data.get("g_ch/ch_girls_0_5")),
@@ -340,19 +321,16 @@ def kobo_eree_webhook(request):
             "leaflets_adults": _to_int(data.get("g_ch/leaflets_adults")),
             "leaflets_children": _to_int(data.get("g_ch/leaflets_children")),
 
-            # G_QUALITY
             "quality_date": quality_date,
             "quality_team": data.get("g_quality/quality_team"),
             "quality_method": data.get("g_quality/quality_method"),
             "quality_observations": data.get("g_quality/quality_observations"),
             "difficulties_solutions": data.get("g_quality/difficulties_solutions"),
 
-            # TOTALS
             "total_pdi": total_pdi,
             "total_host_community": total_host,
             "total_participants": total_participants,
 
-            # KOBO
             "kobo_uuid": data.get("_uuid"),
             "submitted_at_kobo": _parse_datetime(data.get("_submission_time")),
             "raw_payload": data,
@@ -365,12 +343,12 @@ def kobo_eree_webhook(request):
         obj.save()
 
     return JsonResponse(
-        {
-            "success": True,
-            "created": created,
-            "reference": obj.reference,
-            "participants": obj.total_participants,
-            "total_pdi": obj.total_pdi,
-            "total_host_community": obj.total_host_community,
-        }
-    )
+    {
+        "success": True,
+        "created": created,
+        "reference": obj.reference,
+        "participants": obj.total_participants,
+        "total_pdi": obj.total_pdi,
+        "total_host_community": obj.total_host_community,
+    }
+)
