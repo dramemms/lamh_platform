@@ -11,6 +11,9 @@ urlpatterns = [
 
     path("", core_views.home, name="home"),
 
+    # AJOUT IMPORTANT
+    path("", include("apps.core.urls")),
+
     path(
         "dashboard/",
         core_views.dashboard,

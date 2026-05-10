@@ -8,7 +8,7 @@ from weasyprint import HTML, CSS
 from apps.incidents.models import Accident
 from apps.victims.models import Victim
 from apps.eree.models import EREESession
-
+from apps.geo.models import Region, Cercle, Commune
 
 def rate(part, total):
     if not total:
@@ -116,3 +116,80 @@ def data_management(request):
         "communes_count": Commune.objects.count(),
     }
     return render(request, "core/data_management.html", context)
+
+# =====================================================
+# GESTION ACCIDENTS
+# =====================================================
+
+@login_required
+def manage_accidents(request):
+
+    accidents = Accident.objects.all().order_by("-id")
+
+    return render(
+        request,
+        "core/manage_accidents.html",
+        {
+            "accidents": accidents
+        }
+    )
+
+
+@login_required
+def edit_accident(request, pk):
+
+    accident = get_object_or_404(
+        Accident,
+        pk=pk
+    )
+
+    if request.method == "POST":
+
+        form = AccidentForm(
+            request.POST,
+            instance=accident
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            return redirect("manage_accidents")
+
+    else:
+
+        form = AccidentForm(
+            instance=accident
+        )
+
+    return render(
+        request,
+        "core/edit_accident.html",
+        {
+            "form": form,
+            "accident": accident
+        }
+    )
+
+
+@login_required
+def delete_accident(request, pk):
+
+    accident = get_object_or_404(
+        Accident,
+        pk=pk
+    )
+
+    if request.method == "POST":
+
+        accident.delete()
+
+        return redirect("manage_accidents")
+
+    return render(
+        request,
+        "core/delete_accident.html",
+        {
+            "accident": accident
+        }
+    )

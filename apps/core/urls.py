@@ -30,4 +30,27 @@ urlpatterns = [
         name="data_management"
     ),
 
+  
+   # =========================
+# GESTION ACCIDENTS
+# =========================
+
+path(
+    "data-management/accidents/",
+    views.manage_accidents,
+    name="manage_accidents"
+),
+
+path(
+    "data-management/accidents/<int:pk>/edit/",
+    views.edit_accident,
+    name="edit_accident"
+),
+
+path(
+    "data-management/accidents/<int:pk>/delete/",
+    views.delete_accident,
+    name="delete_accident"
+),
+
 ]

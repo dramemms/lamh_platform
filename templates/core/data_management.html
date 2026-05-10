@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestion des données{% endblock %}
+
+{% block content %}
+
+<style>
+.data-page {
+    padding: 28px 36px;
+    background: #f3f6f9;
+    min-height: 100vh;
+}
+
+.data-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 26px;
+}
+
+.data-title h1 {
+    font-size: 38px;
+    font-weight: 900;
+    color: #061f3d;
+    margin: 0;
+}
+
+.data-title p {
+    font-size: 20px;
+    color: #6b7280;
+    margin-top: 6px;
+}
+
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+}
+
+.data-card {
+    background: white;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+    border-left: 6px solid #8b1e2b;
+}
+
+.data-card h3 {
+    margin: 0;
+    font-size: 22px;
+    color: #061f3d;
+}
+
+.data-card .count {
+    font-size: 42px;
+    font-weight: 900;
+    color: #061f3d;
+    margin: 18px 0;
+}
+
+.data-card a {
+    display: inline-block;
+    background: #8b1e2b;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.data-card a:hover {
+    background: #6f1621;
+}
+</style>
+
+<div class="data-page">
+
+    <div class="data-header">
+        <div class="data-title">
+            <h1>Gestion des données</h1>
+            <p>Accès aux tables, données Kobo, exports et contrôles LAMH Platform</p>
+        </div>
+    </div>
+
+    <div class="data-grid">
+
+        <div class="data-card">
+            <h3>Accidents</h3>
+            <div class="count">{{ accidents_count }}</div>
+            <a href="{% url 'manage_accidents' %}">Gérer les accidents</a>
+        </div>
+
+        <div class="data-card">
+            <h3>Victimes</h3>
+            <div class="count">{{ victims_count }}</div>
+            <a href="{% url 'victim_list' %}">Accéder à la table</a>
+        </div>
+
+        <div class="data-card">
+            <h3>Sessions EREE</h3>
+            <div class="count">{{ eree_count }}</div>
+            <a href="{% url 'eree_list' %}">Accéder à la table</a>
+        </div>
+
+        <div class="data-card">
+            <h3>Régions</h3>
+            <div class="count">{{ regions_count }}</div>
+            <a href="/admin/geo/region/">Gérer</a>
+        </div>
+
+        <div class="data-card">
+            <h3>Cercles</h3>
+            <div class="count">{{ cercles_count }}</div>
+            <a href="/admin/geo/cercle/">Gérer</a>
+        </div>
+
+        <div class="data-card">
+            <h3>Communes</h3>
+            <div class="count">{{ communes_count }}</div>
+            <a href="/admin/geo/commune/">Gérer</a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
