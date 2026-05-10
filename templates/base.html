@@ -324,6 +324,8 @@
                     Reporting
                 </a>
 
+                <a href="{% url 'data_management' %}">Données</a>
+
                 {% if user.role == "ADMIN" %}
 
                     <a href="{% url 'admin_users' %}" class="nav-link">
