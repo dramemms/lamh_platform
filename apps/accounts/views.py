@@ -12,6 +12,8 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
 
 from apps.geo.models import Region
 
@@ -395,6 +397,20 @@ def change_password(request):
             user.last_password_change = timezone.now()
 
             user.save()
+            
+            if user.email:
+                send_mail(
+                    subject="LAMH Platform - Mot de passe modifié",
+                    message=(
+                       f"Bonjour {user.get_full_name() or user.username},\n\n"
+                       "Votre mot de passe LAMH Platform vient d'être modifié avec succès.\n\n"
+                       "Si vous n'êtes pas à l'origine de cette action, veuillez contacter immédiatement l'administrateur.\n\n"
+                       "LAMH Platform - DCA Mali"
+        ),
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        recipient_list=[user.email],
+        fail_silently=True,
+    )
 
             update_session_auth_hash(
                 request,
