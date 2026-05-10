@@ -38,6 +38,10 @@ def send_notification(subject, message, recipients):
 
 def notify_accident_submitted(accident):
     recipients = get_tech_emails()
+
+    if getattr(accident, "submitter_email", None):
+        recipients.append(accident.submitter_email)
+
     url = build_url(reverse("accident_detail", args=[accident.pk]))
 
     message = f"""
@@ -187,6 +191,10 @@ LAMH Plateforme
 
 def notify_victim_submitted(victim):
     recipients = get_tech_emails()
+
+    if getattr(victim, "submitter_email", None):
+        recipients.append(victim.submitter_email)
+
     url = build_url(reverse("victim_detail", args=[victim.pk]))
 
     message = f"""
@@ -327,6 +335,14 @@ LAMH Plateforme
 
 def notify_eree_submitted(eree):
     recipients = get_tech_emails()
+
+    if getattr(eree, "submitter_email", None):
+        recipients.append(eree.submitter_email)
+
+    submitted_by_email = getattr(eree, "reported_by", None)
+    if submitted_by_email and "@" in submitted_by_email:
+        recipients.append(submitted_by_email)
+
     url = build_url(reverse("eree_detail", args=[eree.pk]))
 
     message = f"""
