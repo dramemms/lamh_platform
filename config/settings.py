@@ -47,10 +47,14 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     ".ngrok-free.dev",
+
+    "lamh-ims.com",
+    "www.lamh-ims.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://*.ngrok-free.dev",
+    "https://lamh-ims.com",
+    "https://www.lamh-ims.com",
 ]
 
 # KOBO
