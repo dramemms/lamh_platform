@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="padding:40px;">
+    <h1>Gestion des communes</h1>
+
+    <table style="width:100%;background:white;border-collapse:collapse;">
+        <tr style="background:#061f3d;color:white;">
+            <th style="padding:14px;">ID</th>
+            <th>Code</th>
+            <th>Nom</th>
+            <th>Cercle</th>
+            <th>Région</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+        </tr>
+
+        {% for commune in communes %}
+        <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:12px;">{{ commune.id }}</td>
+            <td>{{ commune.code }}</td>
+            <td>{{ commune.name }}</td>
+            <td>{{ commune.cercle.name }}</td>
+            <td>{{ commune.cercle.region.name }}</td>
+            <td>{{ commune.latitude }}</td>
+            <td>{{ commune.longitude }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

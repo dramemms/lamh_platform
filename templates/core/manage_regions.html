@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="padding:40px;">
+    <h1>Gestion des régions</h1>
+
+    <table style="width:100%;background:white;border-collapse:collapse;">
+        <tr style="background:#061f3d;color:white;">
+            <th style="padding:14px;">ID</th>
+            <th>Code</th>
+            <th>Nom</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+        </tr>
+
+        {% for region in regions %}
+        <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:12px;">{{ region.id }}</td>
+            <td>{{ region.code }}</td>
+            <td>{{ region.name }}</td>
+            <td>{{ region.latitude }}</td>
+            <td>{{ region.longitude }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

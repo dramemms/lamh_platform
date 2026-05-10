@@ -99,4 +99,8 @@ path(
     name="delete_eree"
 ),
 
+path("data-management/regions/", views.manage_regions, name="manage_regions"),
+path("data-management/cercles/", views.manage_cercles, name="manage_cercles"),
+path("data-management/communes/", views.manage_communes, name="manage_communes"),
+
 ]

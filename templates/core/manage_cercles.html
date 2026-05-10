@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="padding:40px;">
+    <h1>Gestion des cercles</h1>
+
+    <table style="width:100%;background:white;border-collapse:collapse;">
+        <tr style="background:#061f3d;color:white;">
+            <th style="padding:14px;">ID</th>
+            <th>Code</th>
+            <th>Nom</th>
+            <th>Région</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+        </tr>
+
+        {% for cercle in cercles %}
+        <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:12px;">{{ cercle.id }}</td>
+            <td>{{ cercle.code }}</td>
+            <td>{{ cercle.name }}</td>
+            <td>{{ cercle.region.name }}</td>
+            <td>{{ cercle.latitude }}</td>
+            <td>{{ cercle.longitude }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

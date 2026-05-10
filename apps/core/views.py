@@ -433,3 +433,36 @@ def delete_eree(request, pk):
         "core/delete_eree.html",
         {"session": session}
     )
+
+# =====================================================
+# GESTION REGIONS
+# =====================================================
+
+@login_required
+def manage_regions(request):
+    regions = Region.objects.all().order_by("name")
+    return render(request, "core/manage_regions.html", {"regions": regions})
+
+
+# =====================================================
+# GESTION CERCLES
+# =====================================================
+
+@login_required
+def manage_cercles(request):
+    cercles = Cercle.objects.select_related("region").all().order_by("region__name", "name")
+    return render(request, "core/manage_cercles.html", {"cercles": cercles})
+
+
+# =====================================================
+# GESTION COMMUNES
+# =====================================================
+
+@login_required
+def manage_communes(request):
+    communes = Commune.objects.select_related("cercle", "cercle__region").all().order_by(
+        "cercle__region__name",
+        "cercle__name",
+        "name"
+    )
+    return render(request, "core/manage_communes.html", {"communes": communes})
