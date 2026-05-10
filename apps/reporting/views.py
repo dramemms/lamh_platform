@@ -83,34 +83,50 @@ def kobo_pai_webhook(request):
         try:
             data = json.loads(request.body.decode("utf-8"))
 
-            print("===== WEBHOOK KOBO PAI =====")
+            print("===== WEBHOOK KOBO PAI BRUT =====")
             print(data)
 
             cleaned_data = {}
 
-            # =====================================
-            # NETTOYAGE DES CLES KOBO
-            # d[g_identite/nom] -> g_identite/nom
-            # =====================================
-
-            for key, value in data.items():
-
-                clean_key = key
-
+            def clean_key(key):
                 if key.startswith("d[") and key.endswith("]"):
-                    clean_key = key[2:-1]
+                    return key[2:-1]
+                return key
 
-                cleaned_data[clean_key] = value
+            def flatten(prefix, value):
+                """
+                Récupère tous les champs simples + les champs dans les repeat Kobo.
+                """
 
-            # =====================================
-            # ENREGISTREMENT COMPLET
-            # =====================================
+                if isinstance(value, dict):
+                    for k, v in value.items():
+                        new_key = clean_key(k)
+                        full_key = f"{prefix}/{new_key}" if prefix else new_key
+                        flatten(full_key, v)
+
+                elif isinstance(value, list):
+                    for index, item in enumerate(value, start=1):
+                        if isinstance(item, dict):
+                            for k, v in item.items():
+                                new_key = clean_key(k)
+                                full_key = f"{prefix}[{index}]/{new_key}" if prefix else f"{new_key}[{index}]"
+                                flatten(full_key, v)
+                        else:
+                            cleaned_data[f"{prefix}[{index}]"] = item
+
+                else:
+                    cleaned_data[prefix] = value
+
+            flatten("", data)
+
+            print("===== WEBHOOK KOBO PAI NETTOYÉ =====")
+            print(cleaned_data)
 
             submission = PAIAssistanceSubmission.objects.create(
-
-                victim_code=cleaned_data.get(
-                    "g_identite/code_victime",
-                    ""
+                victim_code=(
+                    cleaned_data.get("g_identite/code_victime")
+                    or cleaned_data.get("code_victime")
+                    or ""
                 ),
 
                 victim_name=(
@@ -118,9 +134,10 @@ def kobo_pai_webhook(request):
                     f"{cleaned_data.get('g_identite/prenom_victime', '')}"
                 ).strip(),
 
-                assistance_type=cleaned_data.get(
-                    "g_assistance/type_assistance",
-                    ""
+                assistance_type=(
+                    cleaned_data.get("g_assistance/type_assistance")
+                    or cleaned_data.get("type_assistance")
+                    or ""
                 ),
 
                 raw_data=cleaned_data,
@@ -134,7 +151,6 @@ def kobo_pai_webhook(request):
             })
 
         except Exception as e:
-
             return JsonResponse({
                 "status": "error",
                 "message": str(e)
