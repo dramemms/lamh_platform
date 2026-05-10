@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion victimes{% endblock %}
+
+{% block content %}
+<div style="padding:40px;">
+    <h1>Gestion des victimes</h1>
+
+    <table style="width:100%;background:white;border-collapse:collapse;">
+        <tr style="background:#061f3d;color:white;">
+            <th style="padding:14px;">ID</th>
+            <th>ID Victime</th>
+            <th>Nom</th>
+            <th>Actions</th>
+        </tr>
+
+        {% for victim in victims %}
+        <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:12px;">{{ victim.id }}</td>
+            <td>{{ victim.victim_id }}</td>
+            <td>{{ victim.first_name }} {{ victim.last_name }}</td>
+            <td>
+                <a href="{% url 'edit_victim' victim.pk %}">Modifier</a> |
+                <a href="{% url 'delete_victim' victim.pk %}">Supprimer</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

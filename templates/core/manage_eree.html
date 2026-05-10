@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion EREE{% endblock %}
+
+{% block content %}
+<div style="padding:40px;">
+    <h1>Gestion des sessions EREE</h1>
+
+    <table style="width:100%;background:white;border-collapse:collapse;">
+        <tr style="background:#061f3d;color:white;">
+            <th style="padding:14px;">ID</th>
+            <th>Référence</th>
+            <th>Date</th>
+            <th>Actions</th>
+        </tr>
+
+        {% for session in sessions %}
+        <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:12px;">{{ session.id }}</td>
+            <td>{{ session.reference }}</td>
+            <td>{{ session.session_date }}</td>
+            <td>
+                <a href="{% url 'edit_eree' session.pk %}">Modifier</a> |
+                <a href="{% url 'delete_eree' session.pk %}">Supprimer</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

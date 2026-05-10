@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="padding:40px;max-width:900px;">
+    <h1>Modifier victime</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit">Enregistrer</button>
+    </form>
+</div>
+{% endblock %}
