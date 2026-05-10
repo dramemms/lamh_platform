@@ -104,3 +104,15 @@ def export_lamh_dashboard_pdf(request):
     )
 
     return response
+
+@login_required
+def data_management(request):
+    context = {
+        "accidents_count": Accident.objects.count(),
+        "victims_count": Victim.objects.count(),
+        "eree_count": EREESession.objects.count(),
+        "regions_count": Region.objects.count(),
+        "cercles_count": Cercle.objects.count(),
+        "communes_count": Commune.objects.count(),
+    }
+    return render(request, "core/data_management.html", context)

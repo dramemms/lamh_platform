@@ -760,6 +760,5 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
     return render(request, template_name, context)
 
 
-@login_required
 def eree_dashboard_page2(request):
     return eree_dashboard(request, template_name="eree/eree_dashboard_page2.html")

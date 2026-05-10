@@ -1010,7 +1010,7 @@ def victim_dashboard(request):
     return render(request, "victims/victim_dashboard.html", context)
 
 
-@login_required
+
 def victim_cercle_heatmap(request):
     victims = get_user_scoped_victim_queryset(request.user).filter(
         status=Victim.STATUS_APPROVED
