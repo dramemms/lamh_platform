@@ -103,4 +103,28 @@ path("data-management/regions/", views.manage_regions, name="manage_regions"),
 path("data-management/cercles/", views.manage_cercles, name="manage_cercles"),
 path("data-management/communes/", views.manage_communes, name="manage_communes"),
 
+# =========================
+# REGIONS
+# =========================
+
+path("data-management/regions/", views.manage_regions, name="manage_regions"),
+path("data-management/regions/<int:pk>/edit/", views.edit_region, name="edit_region"),
+path("data-management/regions/<int:pk>/delete/", views.delete_region, name="delete_region"),
+
+# =========================
+# CERCLES
+# =========================
+
+path("data-management/cercles/", views.manage_cercles, name="manage_cercles"),
+path("data-management/cercles/<int:pk>/edit/", views.edit_cercle, name="edit_cercle"),
+path("data-management/cercles/<int:pk>/delete/", views.delete_cercle, name="delete_cercle"),
+
+# =========================
+# COMMUNES
+# =========================
+
+path("data-management/communes/", views.manage_communes, name="manage_communes"),
+path("data-management/communes/<int:pk>/edit/", views.edit_commune, name="edit_commune"),
+path("data-management/communes/<int:pk>/delete/", views.delete_commune, name="delete_commune"),
+
 ]

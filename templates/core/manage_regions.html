@@ -11,6 +11,7 @@
             <th>Nom</th>
             <th>Latitude</th>
             <th>Longitude</th>
+            <th>Actions</th>
         </tr>
 
         {% for region in regions %}
@@ -20,6 +21,10 @@
             <td>{{ region.name }}</td>
             <td>{{ region.latitude }}</td>
             <td>{{ region.longitude }}</td>
+            <td>
+    <a href="{% url 'edit_region' region.pk %}">Modifier</a> |
+    <a href="{% url 'delete_region' region.pk %}">Supprimer</a>
+</td>
         </tr>
         {% endfor %}
     </table>

@@ -12,6 +12,7 @@
             <th>Région</th>
             <th>Latitude</th>
             <th>Longitude</th>
+            <th>Actions</th>
         </tr>
 
         {% for cercle in cercles %}
@@ -22,6 +23,10 @@
             <td>{{ cercle.region.name }}</td>
             <td>{{ cercle.latitude }}</td>
             <td>{{ cercle.longitude }}</td>
+            <td>
+    <a href="{% url 'edit_cercle' cercle.pk %}">Modifier</a> |
+    <a href="{% url 'delete_cercle' cercle.pk %}">Supprimer</a>
+</td>
         </tr>
         {% endfor %}
     </table>

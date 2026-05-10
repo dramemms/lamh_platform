@@ -13,6 +13,7 @@
             <th>Région</th>
             <th>Latitude</th>
             <th>Longitude</th>
+            <th>Actions</th>
         </tr>
 
         {% for commune in communes %}
@@ -24,6 +25,10 @@
             <td>{{ commune.cercle.region.name }}</td>
             <td>{{ commune.latitude }}</td>
             <td>{{ commune.longitude }}</td>
+            <td>
+    <a href="{% url 'edit_commune' commune.pk %}">Modifier</a> |
+    <a href="{% url 'delete_commune' commune.pk %}">Supprimer</a>
+</td>
         </tr>
         {% endfor %}
     </table>

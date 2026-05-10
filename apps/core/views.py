@@ -7,7 +7,7 @@ from django.shortcuts import (
 
 
 
-
+from django.forms import modelform_factory
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -466,3 +466,123 @@ def manage_communes(request):
         "name"
     )
     return render(request, "core/manage_communes.html", {"communes": communes})
+
+# =====================================================
+# FORMULAIRES GEO
+# =====================================================
+
+RegionForm = modelform_factory(Region, fields="__all__")
+CercleForm = modelform_factory(Cercle, fields="__all__")
+CommuneForm = modelform_factory(Commune, fields="__all__")
+
+
+# =====================================================
+# REGIONS
+# =====================================================
+
+@login_required
+def manage_regions(request):
+    regions = Region.objects.all().order_by("name")
+    return render(request, "core/manage_regions.html", {"regions": regions})
+
+
+@login_required
+def edit_region(request, pk):
+    region = get_object_or_404(Region, pk=pk)
+
+    if request.method == "POST":
+        form = RegionForm(request.POST, instance=region)
+        if form.is_valid():
+            form.save()
+            return redirect("manage_regions")
+    else:
+        form = RegionForm(instance=region)
+
+    return render(request, "core/edit_region.html", {"form": form, "region": region})
+
+
+@login_required
+def delete_region(request, pk):
+    region = get_object_or_404(Region, pk=pk)
+
+    if request.method == "POST":
+        region.delete()
+        return redirect("manage_regions")
+
+    return render(request, "core/delete_region.html", {"region": region})
+
+
+# =====================================================
+# CERCLES
+# =====================================================
+
+@login_required
+def manage_cercles(request):
+    cercles = Cercle.objects.select_related("region").all().order_by("region__name", "name")
+    return render(request, "core/manage_cercles.html", {"cercles": cercles})
+
+
+@login_required
+def edit_cercle(request, pk):
+    cercle = get_object_or_404(Cercle, pk=pk)
+
+    if request.method == "POST":
+        form = CercleForm(request.POST, instance=cercle)
+        if form.is_valid():
+            form.save()
+            return redirect("manage_cercles")
+    else:
+        form = CercleForm(instance=cercle)
+
+    return render(request, "core/edit_cercle.html", {"form": form, "cercle": cercle})
+
+
+@login_required
+def delete_cercle(request, pk):
+    cercle = get_object_or_404(Cercle, pk=pk)
+
+    if request.method == "POST":
+        cercle.delete()
+        return redirect("manage_cercles")
+
+    return render(request, "core/delete_cercle.html", {"cercle": cercle})
+
+
+# =====================================================
+# COMMUNES
+# =====================================================
+
+@login_required
+def manage_communes(request):
+    communes = Commune.objects.select_related("cercle", "cercle__region").all().order_by(
+        "cercle__region__name",
+        "cercle__name",
+        "name"
+    )
+    return render(request, "core/manage_communes.html", {"communes": communes})
+
+
+@login_required
+def edit_commune(request, pk):
+    commune = get_object_or_404(Commune, pk=pk)
+
+    if request.method == "POST":
+        form = CommuneForm(request.POST, instance=commune)
+        if form.is_valid():
+            form.save()
+            return redirect("manage_communes")
+    else:
+        form = CommuneForm(instance=commune)
+
+    return render(request, "core/edit_commune.html", {"form": form, "commune": commune})
+
+
+@login_required
+def delete_commune(request, pk):
+    commune = get_object_or_404(Commune, pk=pk)
+
+    if request.method == "POST":
+        commune.delete()
+        return redirect("manage_communes")
+
+    return render(request, "core/delete_commune.html", {"commune": commune})

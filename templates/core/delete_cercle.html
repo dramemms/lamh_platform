@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="padding:40px;">
+    <h1>Supprimer</h1>
+
+    <p>Voulez-vous vraiment supprimer cet élément ?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Confirmer suppression</button>
+    </form>
+</div>
+{% endblock %}
