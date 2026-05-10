@@ -5,6 +5,9 @@ from django.shortcuts import (
     get_object_or_404
 )
 
+
+
+
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -15,7 +18,9 @@ from apps.incidents.forms import AccidentEditForm
 from apps.incidents.models import Accident
 
 from apps.victims.models import Victim
+from apps.victims.forms import VictimEditForm
 from apps.eree.models import EREESession
+from apps.eree.forms import EREEEditForm
 
 from apps.geo.models import (
     Region,
@@ -320,4 +325,111 @@ def delete_accident(request, pk):
         {
             "accident": accident
         }
+    )
+
+# =====================================================
+# GESTION VICTIMES
+# =====================================================
+
+@login_required
+def manage_victims(request):
+    victims = Victim.objects.all().order_by("-id")
+
+    return render(
+        request,
+        "core/manage_victims.html",
+        {"victims": victims}
+    )
+
+
+@login_required
+def edit_victim(request, pk):
+    victim = get_object_or_404(Victim, pk=pk)
+
+    if request.method == "POST":
+        form = VictimEditForm(request.POST, instance=victim)
+
+        if form.is_valid():
+            form.save()
+            return redirect("manage_victims")
+
+    else:
+        form = VictimEditForm(instance=victim)
+
+    return render(
+        request,
+        "core/edit_victim.html",
+        {
+            "form": form,
+            "victim": victim
+        }
+    )
+
+
+@login_required
+def delete_victim(request, pk):
+    victim = get_object_or_404(Victim, pk=pk)
+
+    if request.method == "POST":
+        victim.delete()
+        return redirect("manage_victims")
+
+    return render(
+        request,
+        "core/delete_victim.html",
+        {"victim": victim}
+    )
+
+
+# =====================================================
+# GESTION EREE
+# =====================================================
+
+@login_required
+def manage_eree(request):
+    sessions = EREESession.objects.all().order_by("-id")
+
+    return render(
+        request,
+        "core/manage_eree.html",
+        {"sessions": sessions}
+    )
+
+
+@login_required
+def edit_eree(request, pk):
+    session = get_object_or_404(EREESession, pk=pk)
+
+    if request.method == "POST":
+        form = EREEEditForm(request.POST, instance=session)
+
+        if form.is_valid():
+            form.save()
+            return redirect("manage_eree")
+
+    else:
+        form = EREEEditForm(instance=session)
+
+    return render(
+        request,
+        "core/edit_eree.html",
+        {
+            "form": form,
+            "session": session
+        }
+    )
+
+
+@login_required
+def delete_eree(request, pk):
+    session = get_object_or_404(EREESession, pk=pk)
+
+    if request.method == "POST":
+        session.delete()
+        return redirect("manage_eree")
+
+    return render(
+        request,
+        "core/delete_eree.html",
+        {"session": session}
     )

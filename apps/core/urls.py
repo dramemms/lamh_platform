@@ -53,4 +53,50 @@ path(
     name="delete_accident"
 ),
 
+
+# =========================
+# GESTION VICTIMES
+# =========================
+
+path(
+    "data-management/victims/",
+    views.manage_victims,
+    name="manage_victims"
+),
+
+path(
+    "data-management/victims/<int:pk>/edit/",
+    views.edit_victim,
+    name="edit_victim"
+),
+
+path(
+    "data-management/victims/<int:pk>/delete/",
+    views.delete_victim,
+    name="delete_victim"
+),
+
+
+# =========================
+# GESTION EREE
+# =========================
+
+path(
+    "data-management/eree/",
+    views.manage_eree,
+    name="manage_eree"
+),
+
+path(
+    "data-management/eree/<int:pk>/edit/",
+    views.edit_eree,
+    name="edit_eree"
+),
+
+path(
+    "data-management/eree/<int:pk>/delete/",
+    views.delete_eree,
+    name="delete_eree"
+),
+
 ]

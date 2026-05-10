@@ -180,3 +180,8 @@ class VictimEditForm(forms.ModelForm):
                     and not isinstance(field.widget, forms.CheckboxInput)
                 ):
                     field.widget.attrs["class"] = (existing + " form-control").strip()
+
+class VictimEditForm(forms.ModelForm):
+    class Meta:
+        model = Victim
+        fields = "__all__"

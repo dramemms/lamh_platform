@@ -273,3 +273,8 @@ class EREESessionEditForm(BaseEREESessionForm):
         label="Commentaire de modification",
         widget=forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
     )
+
+class EREEEditForm(forms.ModelForm):
+    class Meta:
+        model = EREESession
+        fields = "__all__"
