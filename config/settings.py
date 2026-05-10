@@ -56,9 +56,9 @@ CSRF_TRUSTED_ORIGINS = [
 # KOBO
 KOBO_WEBHOOK_TOKEN = "SECRET_LAMH_2026"
 
-KOBO_PAI_FORM_URL = os.environ.get(
+KOBO_ASSISTANCE_FORM_URL = os.environ.get(
     "KOBO_ASSISTANCE_FORM_URL",
-    "https://ee.kobotoolbox.org/x/4TMcZ5nH"
+    ""
 )
 
 
