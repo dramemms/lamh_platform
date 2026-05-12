@@ -552,7 +552,7 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         sessions = sessions.filter(session_date__year=int(periode))
 
     total_sessions = sessions.count()
-    total_beneficiaries = sum(s.total_participants or 0 for s in sessions)
+    total_beneficiaries = 0
 
     humanitarian_male = sum(s.humanitarian_male or 0 for s in sessions)
     humanitarian_female = sum(s.humanitarian_female or 0 for s in sessions)
@@ -627,6 +627,8 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
 
     male_pct = round((total_male / total_beneficiaries * 100), 1) if total_beneficiaries else 0
     female_pct = round((total_female / total_beneficiaries * 100), 1) if total_beneficiaries else 0
+
+    total_beneficiaries = total_male + total_female
 
     sessions_chart = (
         sessions.values("sensitization_type")
