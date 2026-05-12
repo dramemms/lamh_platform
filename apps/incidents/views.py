@@ -783,18 +783,8 @@ def accident_dashboard(request):
         return None
 
     month_order = [
-        "janvier",
-        "février",
-        "mars",
-        "avril",
-        "mai",
-        "juin",
-        "juillet",
-        "août",
-        "septembre",
-        "octobre",
-        "novembre",
-        "décembre",
+        "janvier", "février", "mars", "avril", "mai", "juin",
+        "juillet", "août", "septembre", "octobre", "novembre", "décembre"
     ]
 
     month_map = {
@@ -894,77 +884,62 @@ def accident_dashboard(request):
     cercle_labels = list(cercle_counter.keys())
     cercle_values = list(cercle_counter.values())
 
-    CERCLE_COORDS = {
-        "Bamako": [12.6392, -8.0029],
-        "Bandiagara": [14.3500, -3.6100],
-        "Douentza": [15.0016, -2.9498],
-        "Mopti": [14.4843, -4.1820],
-        "Sévaré": [14.5274, -4.0970],
-        "Koro": [14.0631, -3.0787],
-        "Bankass": [14.0717, -3.5144],
-        "Djenné": [13.9061, -4.5533],
-        "Ténenkou": [14.4572, -4.9169],
-        "Youwarou": [15.3689, -4.2622],
-        "Gao": [16.2717, -0.0447],
-        "Ansongo": [15.6597, 0.5022],
-        "Bourem": [16.9541, -0.3486],
-        "Ménaka": [15.9182, 2.4022],
-        "Tombouctou": [16.7666, -3.0026],
-        "Goundam": [16.4145, -3.6708],
-        "Diré": [16.2570, -3.4010],
-        "Niafunké": [15.9322, -3.9906],
-        "Kayes": [14.4469, -11.4445],
-        "Koulikoro": [12.8627, -7.5599],
-        "Ségou": [13.4317, -6.2157],
-        "Sikasso": [11.3176, -5.6665],
-        "Boré": [14.1850, -3.9220],
-        "Boni": [15.0700, -2.2200],
-    }
-
-    cercle_map_counter = {}
-
-    for accident in accidents:
-        if not accident.cercle:
-            continue
-
-        cercle_name = accident.cercle.name
-
-        if cercle_name not in cercle_map_counter:
-            cercle_map_counter[cercle_name] = {
-                "cercle": cercle_name,
-                "count": 0,
-                "lat_sum": 0,
-                "lng_sum": 0,
-                "coord_count": 0,
-            }
-
-        cercle_map_counter[cercle_name]["count"] += 1
-
-        if accident.latitude and accident.longitude:
-            cercle_map_counter[cercle_name]["lat_sum"] += float(accident.latitude)
-            cercle_map_counter[cercle_name]["lng_sum"] += float(accident.longitude)
-            cercle_map_counter[cercle_name]["coord_count"] += 1
-
+    # =========================
+    # CARTE - VERSION CORRIGÉE
+    # =========================
     map_points = []
 
-    for item in cercle_map_counter.values():
-        if item["coord_count"] > 0:
-            lat = item["lat_sum"] / item["coord_count"]
-            lng = item["lng_sum"] / item["coord_count"]
-        else:
-            coords = CERCLE_COORDS.get(item["cercle"])
-            if not coords:
-                continue
-            lat, lng = coords
+    for accident in accidents:
+        lat = None
+        lng = None
 
-        map_points.append(
-            {
-                "cercle": item["cercle"],
-                "count": item["count"],
-                "lat": lat,
-                "lng": lng,
-            }
-        )
+        # 1. Coordonnées directes de l'accident
+        if (
+            accident.latitude is not None
+            and accident.longitude is not None
+        ):
+            lat = float(accident.latitude)
+            lng = float(accident.longitude)
+
+        # 2. Coordonnées de la commune
+        elif (
+            accident.commune
+            and accident.commune.latitude is not None
+            and accident.commune.longitude is not None
+        ):
+            lat = float(accident.commune.latitude)
+            lng = float(accident.commune.longitude)
+
+        # 3. Coordonnées du cercle
+        elif (
+            accident.cercle
+            and accident.cercle.latitude is not None
+            and accident.cercle.longitude is not None
+        ):
+            lat = float(accident.cercle.latitude)
+            lng = float(accident.cercle.longitude)
+
+        # 4. Coordonnées de la région
+        elif (
+            accident.region
+            and accident.region.latitude is not None
+            and accident.region.longitude is not None
+        ):
+            lat = float(accident.region.latitude)
+            lng = float(accident.region.longitude)
+
+        if lat is not None and lng is not None:
+            map_points.append(
+                {
+                    "reference": accident.reference,
+                    "cercle": accident.cercle.name if accident.cercle else "Sans cercle",
+                    "commune": accident.commune.name if accident.commune else "",
+                    "region": accident.region.name if accident.region else "",
+                    "count": 1,
+                    "lat": lat,
+                    "lng": lng,
+                }
+            )
 
     context = {
         "total_accidents": total_accidents,
