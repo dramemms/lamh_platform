@@ -625,10 +625,10 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
     total_men = humanitarian_male + pdi_men + ch_men
     total_women = humanitarian_female + pdi_women + ch_women
 
-    male_pct = round((total_male / total_beneficiaries * 100), 1) if total_beneficiaries else 0
-    female_pct = round((total_female / total_beneficiaries * 100), 1) if total_beneficiaries else 0
-
     total_beneficiaries = total_male + total_female
+
+    male_pct = round((total_male / total_beneficiaries) * 100, 1) if total_beneficiaries else 0
+    female_pct = round((total_female / total_beneficiaries) * 100, 1) if total_beneficiaries else 0
 
     sessions_chart = (
         sessions.values("sensitization_type")

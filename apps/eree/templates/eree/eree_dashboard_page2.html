@@ -11,7 +11,6 @@
 .page2-wrap {
   background: #eef1f4;
   padding: 14px 18px;
-  height: auto;
 }
 
 .page2-header {
@@ -32,7 +31,6 @@
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 12px;
-  height: auto;
 }
 
 .filter-panel {
@@ -98,16 +96,6 @@
 
 .export-image-btn {
   background: #198754;
-}
-
-.page-btn:hover {
-  background: #7b1f28;
-  color: white;
-}
-
-.export-image-btn:hover {
-  background: #146c43;
-  color: white;
 }
 
 .page2-main {
@@ -239,39 +227,6 @@
   color: #666;
   margin-bottom: 6px;
 }
-
-@media(max-width: 1200px) {
-  .page2-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-panel {
-    min-height: auto;
-  }
-
-  .page2-kpis {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .dashboard-analysis-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .map-card {
-    height: 420px;
-  }
-
-  #ereeMap {
-    height: 360px;
-  }
-}
-
-@media(max-width: 700px) {
-  .page2-kpis,
-  .small-kpi-grid {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
 
 <div class="page2-wrap" id="dashboard-content">
@@ -302,9 +257,7 @@
           <select name="organisation" onchange="this.form.submit()">
             <option value="">Tout</option>
             {% for item in organisations %}
-              <option value="{{ item }}" {% if selected_organisation == item %}selected{% endif %}>
-                {{ item }}
-              </option>
+              <option value="{{ item }}" {% if selected_organisation == item %}selected{% endif %}>{{ item }}</option>
             {% endfor %}
           </select>
         </div>
@@ -314,9 +267,7 @@
           <select name="funding_source" onchange="this.form.submit()">
             <option value="">Tout</option>
             {% for item in funding_sources %}
-              <option value="{{ item }}" {% if selected_funding_source == item %}selected{% endif %}>
-                {{ item }}
-              </option>
+              <option value="{{ item }}" {% if selected_funding_source == item %}selected{% endif %}>{{ item }}</option>
             {% endfor %}
           </select>
         </div>
@@ -326,9 +277,7 @@
           <select name="session_type" onchange="this.form.submit()">
             <option value="">Tout</option>
             {% for item in session_types %}
-              <option value="{{ item }}" {% if selected_session_type == item %}selected{% endif %}>
-                {{ item }}
-              </option>
+              <option value="{{ item }}" {% if selected_session_type == item %}selected{% endif %}>{{ item }}</option>
             {% endfor %}
           </select>
         </div>
@@ -373,7 +322,7 @@
           <label>Période</label>
           <select name="periode" onchange="this.form.submit()">
             <option value="">Tout</option>
-            {% for item in periodes %}
+            {% for item in years %}
               <option value="{{ item.year }}" {% if selected_periode == item.year|stringformat:"s" %}selected{% endif %}>
                 {{ item.year }}
               </option>
@@ -381,9 +330,7 @@
           </select>
         </div>
 
-        <a href="{% url 'eree_dashboard_page2' %}" class="reset-btn">
-          Reset
-        </a>
+        <a href="{% url 'eree_dashboard_page2' %}" class="reset-btn">Reset</a>
 
       </form>
     </aside>
@@ -493,10 +440,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
-const fundingLabels = {{ funding_labels_json|safe }};
-const fundingValues = {{ funding_values_json|safe }};
-const mapLabels = {{ map_cercle_labels_json|safe }};
-const mapValues = {{ map_cercle_values_json|safe }};
+const fundingLabels = {{ funding_labels_json|default:"[]"|safe }};
+const fundingValues = {{ funding_values_json|default:"[]"|safe }};
+const mapData = JSON.parse('{{ map_data_json|default:"[]"|escapejs }}');
 
 new Chart(document.getElementById("fundingChart"), {
   type: "bar",
@@ -513,20 +459,16 @@ new Chart(document.getElementById("fundingChart"), {
     indexAxis: "y",
     responsive: true,
     maintainAspectRatio: false,
-    layout: {
-      padding: {
-        left: 8,
-        right: 8,
-        top: 2,
-        bottom: 2
-      }
-    },
     plugins: {
       legend: { display: false }
     },
     scales: {
       x: {
         beginAtZero: true,
+        ticks: {
+          precision: 0,
+          stepSize: 1
+        },
         grid: { color: "#e5e7eb" }
       },
       y: {
@@ -535,38 +477,6 @@ new Chart(document.getElementById("fundingChart"), {
     }
   }
 });
-
-const cercleCoords = {
-  "bamako": [12.6392, -8.0029],
-  "kayes": [14.4469, -11.4445],
-  "kita": [13.0349, -9.4895],
-  "nioro": [15.2293, -9.5928],
-  "nioro du sahel": [15.2293, -9.5928],
-  "koulikoro": [12.8627, -7.5599],
-  "kati": [12.7441, -8.0726],
-  "segou": [13.4317, -6.2157],
-  "ségou": [13.4317, -6.2157],
-  "san": [13.3034, -4.8956],
-  "mopti": [14.4843, -4.1829],
-  "djenné": [13.9061, -4.5533],
-  "djenne": [13.9061, -4.5533],
-  "bandiagara": [14.3500, -3.6100],
-  "bankass": [14.0710, -3.5150],
-  "koro": [14.0640, -3.0790],
-  "douentza": [15.0016, -2.9498],
-  "ténenkou": [14.4572, -4.9169],
-  "tenenkou": [14.4572, -4.9169],
-  "tombouctou": [16.7735, -3.0074],
-  "gao": [16.2717, -0.0447],
-  "ménaka": [15.9182, 2.4022],
-  "menaka": [15.9182, 2.4022],
-  "kidal": [18.4411, 1.4078],
-  "taoudénit": [22.6764, -3.9789],
-  "taoudenit": [22.6764, -3.9789],
-  "sikasso": [11.3176, -5.6665],
-  "bougouni": [11.4177, -7.4833],
-  "koutiala": [12.3917, -5.4642]
-};
 
 const ereeMap = L.map("ereeMap", {
   zoomControl: true,
@@ -580,21 +490,13 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 const bounds = [];
 
-mapLabels.forEach((label, index) => {
-  if (!label) return;
+mapData.forEach(item => {
+  if (!item.lat || !item.lng) return;
 
-  const cleanLabel = String(label).trim().toLowerCase();
-  const coords = cercleCoords[cleanLabel];
-
-  if (!coords) {
-    console.warn("Cercle sans coordonnées :", label);
-    return;
-  }
-
-  const value = Number(mapValues[index] || 0);
+  const value = Number(item.count || 0);
   const radius = Math.max(8, Math.min(32, value * 6));
 
-  L.circleMarker(coords, {
+  L.circleMarker([item.lat, item.lng], {
     radius: radius,
     color: "#5b36a3",
     weight: 2,
@@ -602,9 +504,12 @@ mapLabels.forEach((label, index) => {
     fillOpacity: 0.55
   })
   .addTo(ereeMap)
-  .bindPopup(`<strong>${label}</strong><br> Total session(s) EREE ${value}`);
+  .bindPopup(`
+    <strong>${item.cercle}</strong><br>
+    Sessions EREE : ${value}
+  `);
 
-  bounds.push(coords);
+  bounds.push([item.lat, item.lng]);
 });
 
 if (bounds.length > 0) {
@@ -622,9 +527,7 @@ function exportEreePage2Image() {
   const dashboard = document.getElementById("dashboard-content");
   const actions = document.querySelector(".page2-actions");
 
-  if (actions) {
-    actions.style.display = "none";
-  }
+  if (actions) actions.style.display = "none";
 
   if (typeof ereeMap !== "undefined") {
     ereeMap.invalidateSize();
@@ -645,19 +548,14 @@ function exportEreePage2Image() {
       link.href = canvas.toDataURL("image/png");
       link.click();
 
-      if (actions) {
-        actions.style.display = "flex";
-      }
+      if (actions) actions.style.display = "flex";
     }).catch(function(error) {
-      if (actions) {
-        actions.style.display = "flex";
-      }
+      if (actions) actions.style.display = "flex";
       console.error("Erreur export image :", error);
       alert("Erreur lors de l'export image.");
     });
   }, 500);
 }
-
 </script>
 
 {% endblock %}
