@@ -552,78 +552,85 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         sessions = sessions.filter(session_date__year=int(periode))
 
     total_sessions = sessions.count()
-    total_beneficiaries = 0
+
+    def sum_fields(field_names):
+        total = 0
+        for s in sessions:
+            total += sum(getattr(s, field, 0) or 0 for field in field_names)
+        return total
+
+    pdi_boys_fields = [
+        "pdi_boys_0_5", "pdi_boys_0_5_dis",
+        "pdi_boys_6_14", "pdi_boys_6_14_dis",
+        "pdi_boys_15_17", "pdi_boys_15_17_dis",
+    ]
+
+    pdi_girls_fields = [
+        "pdi_girls_0_5", "pdi_girls_0_5_dis",
+        "pdi_girls_6_14", "pdi_girls_6_14_dis",
+        "pdi_girls_15_17", "pdi_girls_15_17_dis",
+    ]
+
+    pdi_men_fields = [
+        "pdi_men_18_24", "pdi_men_18_24_dis",
+        "pdi_men_25_49", "pdi_men_25_49_dis",
+        "pdi_men_50_59", "pdi_men_50_59_dis",
+        "pdi_men_60_plus", "pdi_men_60_plus_dis",
+    ]
+
+    pdi_women_fields = [
+        "pdi_women_18_24", "pdi_women_18_24_dis",
+        "pdi_women_25_49", "pdi_women_25_49_dis",
+        "pdi_women_50_59", "pdi_women_50_59_dis",
+        "pdi_women_60_plus", "pdi_women_60_plus_dis",
+    ]
+
+    ch_boys_fields = [
+        "ch_boys_0_5", "ch_boys_0_5_dis",
+        "ch_boys_6_14", "ch_boys_6_14_dis",
+        "ch_boys_15_17", "ch_boys_15_17_dis",
+    ]
+
+    ch_girls_fields = [
+        "ch_girls_0_5", "ch_girls_0_5_dis",
+        "ch_girls_6_14", "ch_girls_6_14_dis",
+        "ch_girls_15_17", "ch_girls_15_17_dis",
+    ]
+
+    ch_men_fields = [
+        "ch_men_18_24", "ch_men_18_24_dis",
+        "ch_men_25_49", "ch_men_25_49_dis",
+        "ch_men_50_59", "ch_men_50_59_dis",
+        "ch_men_60_plus", "ch_men_60_plus_dis",
+    ]
+
+    ch_women_fields = [
+        "ch_women_18_24", "ch_women_18_24_dis",
+        "ch_women_25_49", "ch_women_25_49_dis",
+        "ch_women_50_59", "ch_women_50_59_dis",
+        "ch_women_60_plus", "ch_women_60_plus_dis",
+    ]
+
+    pdi_boys = sum_fields(pdi_boys_fields)
+    pdi_girls = sum_fields(pdi_girls_fields)
+    pdi_men = sum_fields(pdi_men_fields)
+    pdi_women = sum_fields(pdi_women_fields)
+
+    ch_boys = sum_fields(ch_boys_fields)
+    ch_girls = sum_fields(ch_girls_fields)
+    ch_men = sum_fields(ch_men_fields)
+    ch_women = sum_fields(ch_women_fields)
 
     humanitarian_male = sum(s.humanitarian_male or 0 for s in sessions)
     humanitarian_female = sum(s.humanitarian_female or 0 for s in sessions)
 
-    pdi_boys = sum(
-        (s.pdi_boys_0_5 or 0)
-        + (s.pdi_boys_6_14 or 0)
-        + (s.pdi_boys_15_17 or 0)
-        for s in sessions
-    )
-
-    pdi_girls = sum(
-        (s.pdi_girls_0_5 or 0)
-        + (s.pdi_girls_6_14 or 0)
-        + (s.pdi_girls_15_17 or 0)
-        for s in sessions
-    )
-
-    pdi_men = sum(
-        (s.pdi_men_18_24 or 0)
-        + (s.pdi_men_25_49 or 0)
-        + (s.pdi_men_50_59 or 0)
-        + (s.pdi_men_60_plus or 0)
-        for s in sessions
-    )
-
-    pdi_women = sum(
-        (s.pdi_women_18_24 or 0)
-        + (s.pdi_women_25_49 or 0)
-        + (s.pdi_women_50_59 or 0)
-        + (s.pdi_women_60_plus or 0)
-        for s in sessions
-    )
-
-    ch_boys = sum(
-        (s.ch_boys_0_5 or 0)
-        + (s.ch_boys_6_14 or 0)
-        + (s.ch_boys_15_17 or 0)
-        for s in sessions
-    )
-
-    ch_girls = sum(
-        (s.ch_girls_0_5 or 0)
-        + (s.ch_girls_6_14 or 0)
-        + (s.ch_girls_15_17 or 0)
-        for s in sessions
-    )
-
-    ch_men = sum(
-        (s.ch_men_18_24 or 0)
-        + (s.ch_men_25_49 or 0)
-        + (s.ch_men_50_59 or 0)
-        + (s.ch_men_60_plus or 0)
-        for s in sessions
-    )
-
-    ch_women = sum(
-        (s.ch_women_18_24 or 0)
-        + (s.ch_women_25_49 or 0)
-        + (s.ch_women_50_59 or 0)
-        + (s.ch_women_60_plus or 0)
-        for s in sessions
-    )
-
-    total_male = humanitarian_male + pdi_boys + pdi_men + ch_boys + ch_men
-    total_female = humanitarian_female + pdi_girls + pdi_women + ch_girls + ch_women
-
     total_boys = pdi_boys + ch_boys
     total_girls = pdi_girls + ch_girls
-    total_men = humanitarian_male + pdi_men + ch_men
-    total_women = humanitarian_female + pdi_women + ch_women
+    total_men = pdi_men + ch_men + humanitarian_male
+    total_women = pdi_women + ch_women + humanitarian_female
+
+    total_male = total_boys + total_men
+    total_female = total_girls + total_women
 
     total_beneficiaries = total_male + total_female
 
@@ -642,12 +649,8 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         .order_by("-total")
     )
 
-        # =========================
-    # COORDONNEES TEMPORAIRES
-    # =========================
-
     CERCLE_COORDS = {
-       "Bamako": [12.6392, -8.0029],
+        "Bamako": [12.6392, -8.0029],
         "Bandiagara": [14.3500, -3.6100],
         "Douentza": [15.0016, -2.9498],
         "Mopti": [14.4843, -4.1820],
@@ -679,36 +682,23 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         "Niono": [14.2500, -5.9833],
         "San": [13.3033, -4.8956],
         "Tominian": [13.2878, -3.6767],
-        "Mopti": [14.4843, -4.1820],
         "Almoustarat": [17.0500, -0.1500],
-        "Goundam": [16.4145, -3.6708],
         "Gourma-Rharous": [16.0833, -1.7667],
-        "Niafunké": [15.9322, -3.9906],
     }
 
     cercles_map = {}
 
     for session in sessions:
-
         if not session.cercle:
             continue
 
         lat = None
         lng = None
 
-        # =========================
-        # 1. GPS session
-        # =========================
-        if (
-            session.latitude is not None
-            and session.longitude is not None
-        ):
+        if session.latitude is not None and session.longitude is not None:
             lat = float(session.latitude)
             lng = float(session.longitude)
 
-        # =========================
-        # 2. GPS commune
-        # =========================
         elif (
             session.commune
             and session.commune.latitude is not None
@@ -717,9 +707,6 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
             lat = float(session.commune.latitude)
             lng = float(session.commune.longitude)
 
-        # =========================
-        # 3. GPS cercle
-        # =========================
         elif (
             session.cercle
             and session.cercle.latitude is not None
@@ -728,9 +715,6 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
             lat = float(session.cercle.latitude)
             lng = float(session.cercle.longitude)
 
-        # =========================
-        # 4. GPS région
-        # =========================
         elif (
             session.region
             and session.region.latitude is not None
@@ -739,9 +723,6 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
             lat = float(session.region.latitude)
             lng = float(session.region.longitude)
 
-        # =========================
-        # 5. FALLBACK TEMPORAIRE
-        # =========================
         elif session.cercle.name in CERCLE_COORDS:
             lat, lng = CERCLE_COORDS[session.cercle.name]
 
@@ -766,7 +747,6 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
     map_data = []
 
     for item in cercles_map.values():
-
         count = item["count"]
 
         map_data.append({
@@ -778,38 +758,46 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         })
 
     age_groups = {
-        "0-5 ans": sum(
-            (s.pdi_boys_0_5 or 0) + (s.pdi_girls_0_5 or 0)
-            + (s.ch_boys_0_5 or 0) + (s.ch_girls_0_5 or 0)
-            for s in sessions
-        ),
-        "6-14 ans": sum(
-            (s.pdi_boys_6_14 or 0) + (s.pdi_girls_6_14 or 0)
-            + (s.ch_boys_6_14 or 0) + (s.ch_girls_6_14 or 0)
-            for s in sessions
-        ),
-        "15-17 ans": sum(
-            (s.pdi_boys_15_17 or 0) + (s.pdi_girls_15_17 or 0)
-            + (s.ch_boys_15_17 or 0) + (s.ch_girls_15_17 or 0)
-            for s in sessions
-        ),
-        "18-24 ans": sum(
-            (s.pdi_men_18_24 or 0) + (s.pdi_women_18_24 or 0)
-            + (s.ch_men_18_24 or 0) + (s.ch_women_18_24 or 0)
-            for s in sessions
-        ),
-        "25-49 ans": sum(
-            (s.pdi_men_25_49 or 0) + (s.pdi_women_25_49 or 0)
-            + (s.ch_men_25_49 or 0) + (s.ch_women_25_49 or 0)
-            for s in sessions
-        ),
-        "50 ans et +": sum(
-            (s.pdi_men_50_59 or 0) + (s.pdi_women_50_59 or 0)
-            + (s.pdi_men_60_plus or 0) + (s.pdi_women_60_plus or 0)
-            + (s.ch_men_50_59 or 0) + (s.ch_women_50_59 or 0)
-            + (s.ch_men_60_plus or 0) + (s.ch_women_60_plus or 0)
-            for s in sessions
-        ),
+        "0-5 ans": sum_fields([
+            "pdi_boys_0_5", "pdi_boys_0_5_dis",
+            "pdi_girls_0_5", "pdi_girls_0_5_dis",
+            "ch_boys_0_5", "ch_boys_0_5_dis",
+            "ch_girls_0_5", "ch_girls_0_5_dis",
+        ]),
+        "6-14 ans": sum_fields([
+            "pdi_boys_6_14", "pdi_boys_6_14_dis",
+            "pdi_girls_6_14", "pdi_girls_6_14_dis",
+            "ch_boys_6_14", "ch_boys_6_14_dis",
+            "ch_girls_6_14", "ch_girls_6_14_dis",
+        ]),
+        "15-17 ans": sum_fields([
+            "pdi_boys_15_17", "pdi_boys_15_17_dis",
+            "pdi_girls_15_17", "pdi_girls_15_17_dis",
+            "ch_boys_15_17", "ch_boys_15_17_dis",
+            "ch_girls_15_17", "ch_girls_15_17_dis",
+        ]),
+        "18-24 ans": sum_fields([
+            "pdi_men_18_24", "pdi_men_18_24_dis",
+            "pdi_women_18_24", "pdi_women_18_24_dis",
+            "ch_men_18_24", "ch_men_18_24_dis",
+            "ch_women_18_24", "ch_women_18_24_dis",
+        ]),
+        "25-49 ans": sum_fields([
+            "pdi_men_25_49", "pdi_men_25_49_dis",
+            "pdi_women_25_49", "pdi_women_25_49_dis",
+            "ch_men_25_49", "ch_men_25_49_dis",
+            "ch_women_25_49", "ch_women_25_49_dis",
+        ]),
+        "50 ans et +": sum_fields([
+            "pdi_men_50_59", "pdi_men_50_59_dis",
+            "pdi_women_50_59", "pdi_women_50_59_dis",
+            "pdi_men_60_plus", "pdi_men_60_plus_dis",
+            "pdi_women_60_plus", "pdi_women_60_plus_dis",
+            "ch_men_50_59", "ch_men_50_59_dis",
+            "ch_women_50_59", "ch_women_50_59_dis",
+            "ch_men_60_plus", "ch_men_60_plus_dis",
+            "ch_women_60_plus", "ch_women_60_plus_dis",
+        ]),
     }
 
     status_data = {
@@ -877,9 +865,7 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         "funding_labels_json": json.dumps([x["funding_type"] or "Non défini" for x in funding_chart], ensure_ascii=False),
         "funding_values_json": json.dumps([x["total"] for x in funding_chart], ensure_ascii=False),
 
-        
         "map_data_json": json.dumps(map_data, ensure_ascii=False),
-
         "age_groups_json": json.dumps(age_groups, ensure_ascii=False),
         "status_json": json.dumps(status_data, ensure_ascii=False),
         "category_json": json.dumps(category_data, ensure_ascii=False),
