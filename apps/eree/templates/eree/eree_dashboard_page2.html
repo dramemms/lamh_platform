@@ -111,30 +111,33 @@
 
 .page2-kpi {
   background: #fff;
-  height: 100px;
+  height: 128px;
   display: grid;
-  grid-template-columns: 64px 1fr 62px;
+  grid-template-columns: 78px 1fr 90px;
   align-items: center;
-  padding: 8px 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  padding: 14px 18px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  border-radius: 4px;
 }
 
 .page2-kpi img {
-  width: 54px;
-  height: 54px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
 }
 
 .kpi-label {
   text-align: center;
-  font-size: 15px;
-  color: #666;
+  font-size: 20px;
+  font-weight: 500;
+  color: #5b5b5b;
   white-space: nowrap;
+  margin-bottom: 6px;
 }
 
 .kpi-number {
   text-align: center;
-  font-size: 28px;
+  font-size: 44px;
   font-weight: 900;
   color: #d96373;
   line-height: 1;
@@ -142,7 +145,7 @@
 
 .kpi-percent {
   text-align: right;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   color: #111;
   white-space: nowrap;
@@ -363,7 +366,7 @@
             <div class="kpi-label">Masculin</div>
             <div class="kpi-number">{{ total_male }}</div>
           </div>
-          <div class="kpi-percent">{{ male_pct }}%</div>
+          <div class="kpi-percent">{{ male_pct|floatformat:1 }}%</div>
         </section>
 
         <section class="page2-kpi">
@@ -372,7 +375,7 @@
             <div class="kpi-label">Féminin</div>
             <div class="kpi-number">{{ total_female }}</div>
           </div>
-          <div class="kpi-percent">{{ female_pct }}%</div>
+          <div class="kpi-percent">{{ female_pct|floatformat:1 }}%</div>
         </section>
 
       </div>
