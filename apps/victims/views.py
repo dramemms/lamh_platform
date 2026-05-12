@@ -1066,20 +1066,116 @@ def victim_cercle_heatmap(request):
     masculin_pct = round((masculin / total) * 100, 1) if total else 0
     feminin_pct = round((feminin / total) * 100, 1) if total else 0
 
-    victims_map = victims.exclude(latitude__isnull=True).exclude(
-        longitude__isnull=True
-    )
+        # =========================
+    # COORDONNEES TEMPORAIRES
+    # =========================
+
+    CERCLE_COORDS = {
+        "Bamako": [12.6392, -8.0029],
+        "Bandiagara": [14.3500, -3.6100],
+        "Douentza": [15.0016, -2.9498],
+        "Mopti": [14.4843, -4.1820],
+        "Sévaré": [14.5274, -4.0970],
+        "Koro": [14.0631, -3.0787],
+        "Bankass": [14.0717, -3.5144],
+        "Djenné": [13.9061, -4.5533],
+        "Ténenkou": [14.4572, -4.9169],
+        "Youwarou": [15.3689, -4.2622],
+        "Gao": [16.2717, -0.0447],
+        "Ansongo": [15.6597, 0.5022],
+        "Bourem": [16.9541, -0.3486],
+        "Ménaka": [15.9182, 2.4022],
+        "Tombouctou": [16.7666, -3.0026],
+        "Goundam": [16.4145, -3.6708],
+        "Diré": [16.2570, -3.4010],
+        "Niafunké": [15.9322, -3.9906],
+        "Kayes": [14.4469, -11.4445],
+        "Koulikoro": [12.8627, -7.5599],
+        "Ségou": [13.4317, -6.2157],
+        "Sikasso": [11.3176, -5.6665],
+        "Boré": [14.1850, -3.9220],
+        "Boni": [15.0700, -2.2200],
+        "Aguel-Hoc": [19.4667, 1.4167],
+        "Bougouni": [11.4167, -7.4833],
+        "Baraouéli": [14.3111, -6.0403],
+        "Bla": [12.9442, -5.7561],
+        "Macina": [13.9642, -5.3578],
+        "Niono": [14.2500, -5.9833],
+        "San": [13.3033, -4.8956],
+        "Tominian": [13.2878, -3.6767],
+        "Mopti": [14.4843, -4.1820],
+        "Almoustarat": [17.0500, -0.1500],
+        "Goundam": [16.4145, -3.6708],
+        "Gourma-Rharous": [16.0833, -1.7667],
+        "Niafunké": [15.9322, -3.9906],
+    }
 
     cercles_map = {}
 
-    for v in victims_map:
+    for v in victims:
+
         if not v.cercle:
             continue
 
-        try:
-            lat = float(v.latitude)
-            lng = float(v.longitude)
-        except Exception:
+        lat = None
+        lng = None
+
+        # =========================
+        # 1. GPS victime
+        # =========================
+        if (
+            v.latitude is not None
+            and v.longitude is not None
+        ):
+            try:
+                lat = float(v.latitude)
+                lng = float(v.longitude)
+            except Exception:
+                pass
+
+        # =========================
+        # 2. GPS commune
+        # =========================
+        elif (
+            v.commune
+            and v.commune.latitude is not None
+            and v.commune.longitude is not None
+        ):
+            lat = float(v.commune.latitude)
+            lng = float(v.commune.longitude)
+
+        # =========================
+        # 3. GPS cercle
+        # =========================
+        elif (
+            v.cercle
+            and v.cercle.latitude is not None
+            and v.cercle.longitude is not None
+        ):
+            lat = float(v.cercle.latitude)
+            lng = float(v.cercle.longitude)
+
+        # =========================
+        # 4. GPS région
+        # =========================
+        elif (
+            v.region
+            and v.region.latitude is not None
+            and v.region.longitude is not None
+        ):
+            lat = float(v.region.latitude)
+            lng = float(v.region.longitude)
+
+        # =========================
+        # 5. FALLBACK TEMPORAIRE
+        # =========================
+        elif v.cercle.name in CERCLE_COORDS:
+            lat, lng = CERCLE_COORDS[v.cercle.name]
+
+        # =========================
+        # AJOUTER SI COORDONNEES
+        # =========================
+        if lat is None or lng is None:
             continue
 
         key = v.cercle_id
@@ -1100,17 +1196,16 @@ def victim_cercle_heatmap(request):
     map_data = []
 
     for item in cercles_map.values():
+
         count = item["count"]
 
-        map_data.append(
-            {
-                "region": item["region"],
-                "cercle": item["cercle"],
-                "count": count,
-                "lat": item["lat_sum"] / count,
-                "lng": item["lng_sum"] / count,
-            }
-        )
+        map_data.append({
+            "region": item["region"],
+            "cercle": item["cercle"],
+            "count": count,
+            "lat": item["lat_sum"] / count,
+            "lng": item["lng_sum"] / count,
+        })
 
     organisations = (
         filter_queryset.exclude(reporting_org__isnull=True)
