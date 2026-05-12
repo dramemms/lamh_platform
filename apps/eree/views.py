@@ -640,12 +640,140 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         .order_by("-total")
     )
 
-    map_cercles = (
-        sessions.exclude(cercle__isnull=True)
-        .values("cercle__name")
-        .annotate(total=Count("id"))
-        .order_by("-total")
-    )
+        # =========================
+    # COORDONNEES TEMPORAIRES
+    # =========================
+
+    CERCLE_COORDS = {
+       "Bamako": [12.6392, -8.0029],
+        "Bandiagara": [14.3500, -3.6100],
+        "Douentza": [15.0016, -2.9498],
+        "Mopti": [14.4843, -4.1820],
+        "Sévaré": [14.5274, -4.0970],
+        "Koro": [14.0631, -3.0787],
+        "Bankass": [14.0717, -3.5144],
+        "Djenné": [13.9061, -4.5533],
+        "Ténenkou": [14.4572, -4.9169],
+        "Youwarou": [15.3689, -4.2622],
+        "Gao": [16.2717, -0.0447],
+        "Ansongo": [15.6597, 0.5022],
+        "Bourem": [16.9541, -0.3486],
+        "Ménaka": [15.9182, 2.4022],
+        "Tombouctou": [16.7666, -3.0026],
+        "Goundam": [16.4145, -3.6708],
+        "Diré": [16.2570, -3.4010],
+        "Niafunké": [15.9322, -3.9906],
+        "Kayes": [14.4469, -11.4445],
+        "Koulikoro": [12.8627, -7.5599],
+        "Ségou": [13.4317, -6.2157],
+        "Sikasso": [11.3176, -5.6665],
+        "Boré": [14.1850, -3.9220],
+        "Boni": [15.0700, -2.2200],
+        "Aguel-Hoc": [19.4667, 1.4167],
+        "Bougouni": [11.4167, -7.4833],
+        "Baraouéli": [14.3111, -6.0403],
+        "Bla": [12.9442, -5.7561],
+        "Macina": [13.9642, -5.3578],
+        "Niono": [14.2500, -5.9833],
+        "San": [13.3033, -4.8956],
+        "Tominian": [13.2878, -3.6767],
+        "Mopti": [14.4843, -4.1820],
+        "Almoustarat": [17.0500, -0.1500],
+        "Goundam": [16.4145, -3.6708],
+        "Gourma-Rharous": [16.0833, -1.7667],
+        "Niafunké": [15.9322, -3.9906],
+    }
+
+    cercles_map = {}
+
+    for session in sessions:
+
+        if not session.cercle:
+            continue
+
+        lat = None
+        lng = None
+
+        # =========================
+        # 1. GPS session
+        # =========================
+        if (
+            session.latitude is not None
+            and session.longitude is not None
+        ):
+            lat = float(session.latitude)
+            lng = float(session.longitude)
+
+        # =========================
+        # 2. GPS commune
+        # =========================
+        elif (
+            session.commune
+            and session.commune.latitude is not None
+            and session.commune.longitude is not None
+        ):
+            lat = float(session.commune.latitude)
+            lng = float(session.commune.longitude)
+
+        # =========================
+        # 3. GPS cercle
+        # =========================
+        elif (
+            session.cercle
+            and session.cercle.latitude is not None
+            and session.cercle.longitude is not None
+        ):
+            lat = float(session.cercle.latitude)
+            lng = float(session.cercle.longitude)
+
+        # =========================
+        # 4. GPS région
+        # =========================
+        elif (
+            session.region
+            and session.region.latitude is not None
+            and session.region.longitude is not None
+        ):
+            lat = float(session.region.latitude)
+            lng = float(session.region.longitude)
+
+        # =========================
+        # 5. FALLBACK TEMPORAIRE
+        # =========================
+        elif session.cercle.name in CERCLE_COORDS:
+            lat, lng = CERCLE_COORDS[session.cercle.name]
+
+        if lat is None or lng is None:
+            continue
+
+        key = session.cercle_id
+
+        if key not in cercles_map:
+            cercles_map[key] = {
+                "region": session.region.name if session.region else "-",
+                "cercle": session.cercle.name,
+                "count": 0,
+                "lat_sum": 0,
+                "lng_sum": 0,
+            }
+
+        cercles_map[key]["count"] += 1
+        cercles_map[key]["lat_sum"] += lat
+        cercles_map[key]["lng_sum"] += lng
+
+    map_data = []
+
+    for item in cercles_map.values():
+
+        count = item["count"]
+
+        map_data.append({
+            "region": item["region"],
+            "cercle": item["cercle"],
+            "count": count,
+            "lat": item["lat_sum"] / count,
+            "lng": item["lng_sum"] / count,
+        })
 
     age_groups = {
         "0-5 ans": sum(
@@ -747,8 +875,8 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         "funding_labels_json": json.dumps([x["funding_type"] or "Non défini" for x in funding_chart], ensure_ascii=False),
         "funding_values_json": json.dumps([x["total"] for x in funding_chart], ensure_ascii=False),
 
-        "map_cercle_labels_json": json.dumps([x["cercle__name"] or "Non défini" for x in map_cercles], ensure_ascii=False),
-        "map_cercle_values_json": json.dumps([x["total"] for x in map_cercles], ensure_ascii=False),
+        
+        "map_data_json": json.dumps(map_data, ensure_ascii=False),
 
         "age_groups_json": json.dumps(age_groups, ensure_ascii=False),
         "status_json": json.dumps(status_data, ensure_ascii=False),
