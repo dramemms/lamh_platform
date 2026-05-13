@@ -44,13 +44,27 @@
 
       <div class="workflow-label mt-3">
         <strong>Statut :
-          {% if victim.status == "SUBMITTED" %}Soumis
-          {% elif victim.status == "TECH_VALIDATED" %}Validation technique
-          {% elif victim.status == "PROGRAM_VALIDATED" %}Validation programme
-          {% elif victim.status == "APPROVED" %}Approuvé
-          {% elif victim.status == "RETURNED_FOR_CORRECTION" %}Retour pour correction
-          {% else %}{{ victim.get_status_display|default:victim.status }}
-          {% endif %}
+          {% if victim.status == "SUBMITTED" %}
+    Soumis
+
+{% elif victim.status == "TECH_VERIFIED" %}
+    Vérification technique
+
+{% elif victim.status == "TECH_VALIDATED" %}
+    Validation technique
+
+{% elif victim.status == "PROGRAM_VALIDATED" %}
+    Validation programme
+
+{% elif victim.status == "APPROVED" %}
+    Approuvé
+
+{% elif victim.status == "RETURNED_FOR_CORRECTION" %}
+    Retour pour correction
+
+{% else %}
+    {{ victim.get_status_display|default:victim.status }}
+{% endif %}
         </strong>
       </div>
 
@@ -86,59 +100,121 @@
 
       <div class="action-bar">
 
-        {% if can_tech_validate and victim.status == "SUBMITTED" %}
-          <a href="{% url 'victim_tech_validate' victim.pk %}" class="btn btn-success btn-sm">
-            Valider techniquement
-          </a>
+  {# ========================= #}
+  {# VERIFICATION TECHNIQUE #}
+  {# ========================= #}
 
-          <a href="{% url 'victim_tech_reject' victim.pk %}" class="btn btn-warning btn-sm">
-            Retour au soumissionnaire
-          </a>
-        {% endif %}
+  {% if can_tech_verify and victim.status == "SUBMITTED" %}
 
-        {% if can_program_validate and victim.status == "TECH_VALIDATED" and not victim.correction_comment %}
-          <a href="{% url 'victim_program_validate' victim.pk %}" class="btn btn-primary btn-sm">
-            Valider programme
-          </a>
+    <a href="{% url 'victim_tech_verify' victim.pk %}"
+       class="btn btn-info btn-sm">
 
-          <a href="{% url 'victim_program_reject' victim.pk %}" class="btn btn-warning btn-sm">
-            Retour à la validation technique
-          </a>
-        {% endif %}
+      Vérification technique
 
-        {% if can_tech_validate and victim.status == "TECH_VALIDATED" and victim.correction_comment %}
-          <a href="{% url 'victim_send_to_program' victim.pk %}" class="btn btn-primary btn-sm">
-            Resoumettre au programme
-          </a>
+    </a>
 
-          <a href="{% url 'victim_tech_reject' victim.pk %}" class="btn btn-warning btn-sm">
-            Retour au soumissionnaire
-          </a>
-        {% endif %}
+    <a href="{% url 'victim_tech_reject' victim.pk %}"
+       class="btn btn-warning btn-sm">
 
-        {% if can_approve and victim.status == "PROGRAM_VALIDATED" %}
-          <a href="{% url 'victim_approve' victim.pk %}" class="btn btn-dark btn-sm">
-            Approuver final
-          </a>
+      Retour au soumissionnaire
 
-          <a href="{% url 'victim_program_reject' victim.pk %}" class="btn btn-danger btn-sm">
-            Retour à la validation programme
-          </a>
-        {% endif %}
+    </a>
 
-        {% if victim.status == "APPROVED" %}
+  {% endif %}
+
+
+  {# ========================= #}
+  {# VALIDATION TECHNIQUE #}
+  {# ========================= #}
+
+  {% if can_tech_validate and victim.status == "TECH_VERIFIED" %}
+
+    <a href="{% url 'victim_tech_validate' victim.pk %}"
+       class="btn btn-success btn-sm">
+
+      Validation technique
+
+    </a>
+
+    <a href="{% url 'victim_tech_reject' victim.pk %}"
+       class="btn btn-warning btn-sm">
+
+      Retour au soumissionnaire
+
+    </a>
+
+  {% endif %}
+
+
+  {# ========================= #}
+  {# VALIDATION PROGRAMME #}
+  {# ========================= #}
+
+  {% if can_program_validate and victim.status == "TECH_VALIDATED" %}
+
+    <a href="{% url 'victim_program_validate' victim.pk %}"
+       class="btn btn-primary btn-sm">
+
+      Validation programme
+
+    </a>
+
+    <a href="{% url 'victim_program_reject' victim.pk %}"
+       class="btn btn-warning btn-sm">
+
+      Retour validation technique
+
+    </a>
+
+  {% endif %}
+
+
+  {# ========================= #}
+  {# APPROBATION FINALE #}
+  {# ========================= #}
+
+  {% if can_approve and victim.status == "PROGRAM_VALIDATED" %}
+
+    <a href="{% url 'victim_approve' victim.pk %}"
+       class="btn btn-dark btn-sm">
+
+      Approuver final
+
+    </a>
+
+    <a href="{% url 'victim_program_reject' victim.pk %}"
+       class="btn btn-danger btn-sm">
+
+      Retour validation programme
+
+    </a>
+
+  {% endif %}
+
+
+  {# ========================= #}
+  {# ASSISTANCE #}
+  {# ========================= #}
+
+  {% if victim.status == "APPROVED" %}
+
     <a href="{% url 'victim_add_assistance_kobo' victim.pk %}"
        class="btn btn-primary"
        target="_blank">
-        ➕ Ajouter assistance
-    </a>
-{% else %}
-    <button class="btn btn-secondary" disabled>
-        Assistance disponible après approbation complète
-    </button>
-{% endif %}
 
-      </div>
+      ➕ Ajouter assistance
+
+    </a>
+
+  {% else %}
+
+    <button class="btn btn-secondary" disabled>
+      Assistance disponible après approbation complète
+    </button>
+
+  {% endif %}
+
+</div>
     </div>
   </div>
 
@@ -285,6 +361,11 @@
     <div class="card-body info-grid">
       <h5>Workflow de validation</h5>
       <p><strong>Soumis le :</strong> {{ victim.submitted_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Vérifié techniquement le :</strong>
+{{ victim.tech_verified_at|date:"d/m/Y H:i"|default:"-" }}</p>
+
+<p><strong>Vérifié techniquement par :</strong>
+{{ victim.tech_verified_by|default:"-" }}</p>
       <p><strong>Validé techniquement le :</strong> {{ victim.tech_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
       <p><strong>Validé programme le :</strong> {{ victim.program_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
       <p><strong>Approuvé le :</strong> {{ victim.approved_at|date:"d/m/Y H:i"|default:"-" }}</p>

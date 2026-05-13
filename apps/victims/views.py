@@ -20,6 +20,7 @@ from apps.core.permissions import (
     can_edit_accident,
     can_program_validate,
     can_tech_validate,
+    can_tech_verify,
 )
 
 from apps.incidents.models import Accident
@@ -58,6 +59,7 @@ def get_victim_base_queryset():
         "region",
         "cercle",
         "commune",
+        "tech_verified_by",
         "tech_validated_by",
         "program_validated_by",
         "approved_by",
@@ -127,6 +129,7 @@ def safe_get(obj, *fields):
     for field in fields:
         if hasattr(obj, field):
             value = getattr(obj, field)
+
             if value not in [None, ""]:
                 return value
 
@@ -136,6 +139,7 @@ def safe_get(obj, *fields):
 def get_workflow_step_label(victim):
     status_map = {
         Victim.STATUS_SUBMITTED: "Soumission",
+        Victim.STATUS_TECH_VERIFIED: "Vérification technique",
         Victim.STATUS_TECH_VALIDATED: "Validation technique",
         Victim.STATUS_PROGRAM_VALIDATED: "Validation programme",
         Victim.STATUS_APPROVED: "Approbation finale",
@@ -185,6 +189,7 @@ def victim_list(request):
 
     allowed_statuses = {
         Victim.STATUS_SUBMITTED,
+        Victim.STATUS_TECH_VERIFIED,
         Victim.STATUS_TECH_VALIDATED,
         Victim.STATUS_PROGRAM_VALIDATED,
         Victim.STATUS_APPROVED,
@@ -204,10 +209,21 @@ def victim_list(request):
         "victims": victims,
         "count": victims.count(),
         "count_all": base_queryset.count(),
-        "count_submitted": base_queryset.filter(status=Victim.STATUS_SUBMITTED).count(),
-        "count_tech": base_queryset.filter(status=Victim.STATUS_TECH_VALIDATED).count(),
-        "count_program": base_queryset.filter(status=Victim.STATUS_PROGRAM_VALIDATED).count(),
-        "count_approved": base_queryset.filter(status=Victim.STATUS_APPROVED).count(),
+        "count_submitted": base_queryset.filter(
+            status=Victim.STATUS_SUBMITTED
+        ).count(),
+        "count_tech_verified": base_queryset.filter(
+            status=Victim.STATUS_TECH_VERIFIED
+        ).count(),
+        "count_tech": base_queryset.filter(
+            status=Victim.STATUS_TECH_VALIDATED
+        ).count(),
+        "count_program": base_queryset.filter(
+            status=Victim.STATUS_PROGRAM_VALIDATED
+        ).count(),
+        "count_approved": base_queryset.filter(
+            status=Victim.STATUS_APPROVED
+        ).count(),
         "query": query,
         "selected_region": region_id,
         "selected_cercle": cercle_id,
@@ -313,6 +329,7 @@ def victim_detail(request, pk):
         "payload_pretty": payload_pretty,
         "payload": victim.raw_payload,
         "can_edit_victim": can_edit_accident(request.user),
+        "can_tech_verify": can_tech_verify(request.user),
         "can_tech_validate": can_tech_validate(request.user),
         "can_program_validate": can_program_validate(request.user),
         "can_approve": can_approve(request.user),
@@ -415,21 +432,49 @@ def victim_transition(request, pk, action):
     victim = get_victim_or_404(request.user, pk)
 
     try:
-        if action == "tech_validate":
-            if not can_tech_validate(request.user):
+        if action == "submit":
+            if not can_edit_accident(request.user):
+                raise ValidationError("Non autorisé.")
+
+            if victim.status != Victim.STATUS_RETURNED_FOR_CORRECTION:
+                raise ValidationError("Transition invalide.")
+
+            victim.transition_to(
+                Victim.STATUS_SUBMITTED,
+                user=request.user,
+                comment="Fiche victime corrigée et ressoumise.",
+            )
+
+            notify_victim_submitted(victim)
+            messages.success(request, "La fiche victime a été ressoumise avec succès.")
+
+        elif action == "tech_verify":
+            if not can_tech_verify(request.user):
                 raise ValidationError("Non autorisé.")
 
             if victim.status != Victim.STATUS_SUBMITTED:
                 raise ValidationError("Transition invalide.")
 
             victim.transition_to(
-                Victim.STATUS_TECH_VALIDATED,
+                Victim.STATUS_TECH_VERIFIED,
                 user=request.user,
+                comment="Vérification technique effectuée.",
             )
 
-            victim.rejection_reason = ""
-            victim.correction_comment = ""
-            victim.save(update_fields=["rejection_reason", "correction_comment"])
+            messages.success(request, "Vérification technique effectuée.")
+
+        elif action == "tech_validate":
+            if not can_tech_validate(request.user):
+                raise ValidationError("Non autorisé.")
+
+            if victim.status != Victim.STATUS_TECH_VERIFIED:
+                raise ValidationError("Transition invalide.")
+
+            victim.transition_to(
+                Victim.STATUS_TECH_VALIDATED,
+                user=request.user,
+                comment="Validation technique effectuée.",
+            )
 
             notify_victim_tech_validated(victim)
             messages.success(request, "Validation technique effectuée.")
@@ -444,11 +489,8 @@ def victim_transition(request, pk, action):
             victim.transition_to(
                 Victim.STATUS_PROGRAM_VALIDATED,
                 user=request.user,
+                comment="Validation programme effectuée.",
             )
-
-            victim.rejection_reason = ""
-            victim.correction_comment = ""
-            victim.save(update_fields=["rejection_reason", "correction_comment"])
 
             notify_victim_program_validated(victim)
             messages.success(request, "Validation programme effectuée.")
@@ -463,9 +505,11 @@ def victim_transition(request, pk, action):
             victim.transition_to(
                 Victim.STATUS_APPROVED,
                 user=request.user,
+                comment="Approbation finale effectuée.",
             )
 
             notify_victim_approved(victim)
+            notify_submitter_on_victim_approval(victim)
 
             messages.success(request, "Approbation finale effectuée.")
 
@@ -492,27 +536,38 @@ def victim_reject_or_return(request, pk, action):
         try:
             reason = (form.cleaned_data.get("reason") or "").strip()
             comment = (form.cleaned_data.get("comment") or "").strip()
-            final_comment = comment or reason or "-"
+            final_comment = comment or reason
 
-            if action == "tech_reject":
-                if not can_tech_validate(request.user):
-                    raise ValidationError("Action non autorisée.")
-
-                if victim.status != Victim.STATUS_SUBMITTED:
-                    raise ValidationError("Transition invalide.")
-
-                target_status = (
-                    Victim.STATUS_RETURNED_FOR_CORRECTION
-                    if hasattr(Victim, "STATUS_RETURNED_FOR_CORRECTION")
-                    else Victim.STATUS_SUBMITTED
+            if not final_comment:
+                messages.error(request, "Le motif / commentaire est obligatoire.")
+                return render(
+                    request,
+                    "victims/victim_workflow_form.html",
+                    {
+                        "victim": victim,
+                        "form": form,
+                        "action": action,
+                        "title": "Retour au soumissionnaire"
+                        if action == "tech_reject"
+                        else "Retour à la validation technique",
+                    },
                 )
 
-                victim.rejection_reason = reason or "Retour au soumissionnaire"
-                victim.correction_comment = final_comment or "Retour au soumissionnaire"
-                victim.save(update_fields=["rejection_reason", "correction_comment"])
+            if action == "tech_reject":
+                if not (
+                    can_tech_verify(request.user)
+                    or can_tech_validate(request.user)
+                ):
+                    raise ValidationError("Action non autorisée.")
+
+                if victim.status not in [
+                    Victim.STATUS_SUBMITTED,
+                    Victim.STATUS_TECH_VERIFIED,
+                ]:
+                    raise ValidationError("Transition invalide.")
 
                 victim.transition_to(
-                    target_status,
+                    Victim.STATUS_RETURNED_FOR_CORRECTION,
                     user=request.user,
                     reason=reason,
                     comment=final_comment,
@@ -529,31 +584,45 @@ def victim_reject_or_return(request, pk, action):
                 return redirect("victim_detail", pk=pk)
 
             elif action == "program_reject":
-                if not can_program_validate(request.user):
+                if not can_program_validate(request.user) and not can_approve(request.user):
                     raise ValidationError("Action non autorisée.")
 
-                if victim.status != Victim.STATUS_TECH_VALIDATED:
-                    raise ValidationError("Transition invalide.")
+                if victim.status == Victim.STATUS_PROGRAM_VALIDATED:
+                    victim.transition_to(
+                        Victim.STATUS_TECH_VALIDATED,
+                        user=request.user,
+                        reason=reason,
+                        comment=final_comment,
+                    )
 
-                victim.rejection_reason = reason or "Retour à la validation technique"
-                victim.correction_comment = final_comment or "Retour à la validation technique"
-                victim.save(update_fields=["rejection_reason", "correction_comment"])
+                    notify_victim_returned(victim)
 
-                victim.transition_to(
-                    Victim.STATUS_TECH_VALIDATED,
-                    user=request.user,
-                    reason=reason,
-                    comment=final_comment,
-                )
+                    messages.success(
+                        request,
+                        "La victime a été retournée à la validation technique.",
+                    )
 
-                notify_victim_returned(victim)
+                    return redirect("victim_detail", pk=pk)
 
-                messages.success(
-                    request,
-                    "La victime a été retournée à la validation technique.",
-                )
+                if victim.status == Victim.STATUS_TECH_VALIDATED:
+                    victim.transition_to(
+                        Victim.STATUS_RETURNED_FOR_CORRECTION,
+                        user=request.user,
+                        reason=reason,
+                        comment=final_comment,
+                    )
 
-                return redirect("victim_detail", pk=pk)
+                    notify_victim_returned(victim)
+                    notify_submitter_on_victim_return(victim)
+
+                    messages.success(
+                        request,
+                        "La victime a été retournée au soumissionnaire.",
+                    )
+
+                    return redirect("victim_detail", pk=pk)
+
+                raise ValidationError("Transition invalide.")
 
         except (ValidationError, ValueError) as e:
             messages.error(request, str(e))
@@ -570,6 +639,16 @@ def victim_reject_or_return(request, pk, action):
             else "Retour à la validation technique",
         },
     )
+
+
+@login_required
+def victim_resubmit(request, pk):
+    return victim_transition(request, pk, "submit")
+
+
+@login_required
+def victim_tech_verify(request, pk):
+    return victim_transition(request, pk, "tech_verify")
 
 
 @login_required
@@ -608,10 +687,6 @@ def victim_send_to_program(request, pk):
     if victim.status != Victim.STATUS_TECH_VALIDATED:
         messages.error(request, "Transition invalide.")
         return redirect("victim_detail", pk=pk)
-
-    victim.rejection_reason = ""
-    victim.correction_comment = ""
-    victim.save(update_fields=["rejection_reason", "correction_comment"])
 
     notify_victim_tech_validated(victim)
 
@@ -660,7 +735,18 @@ def export_victims_excel(request):
     if outcome_type:
         victims = victims.filter(outcome_type=outcome_type)
 
-    if status:
+    allowed_statuses = {
+        Victim.STATUS_SUBMITTED,
+        Victim.STATUS_TECH_VERIFIED,
+        Victim.STATUS_TECH_VALIDATED,
+        Victim.STATUS_PROGRAM_VALIDATED,
+        Victim.STATUS_APPROVED,
+    }
+
+    if hasattr(Victim, "STATUS_RETURNED_FOR_CORRECTION"):
+        allowed_statuses.add(Victim.STATUS_RETURNED_FOR_CORRECTION)
+
+    if status in allowed_statuses:
         victims = victims.filter(status=status)
 
     victims = victims.order_by("-created_at")
@@ -707,6 +793,9 @@ def export_victims_excel(request):
 
             elif field_name == "commune":
                 value = v.commune.name if v.commune else ""
+
+            elif field_name == "tech_verified_by":
+                value = str(v.tech_verified_by) if v.tech_verified_by else ""
 
             elif field_name == "tech_validated_by":
                 value = str(v.tech_validated_by) if v.tech_validated_by else ""

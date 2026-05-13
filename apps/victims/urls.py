@@ -76,6 +76,18 @@ urlpatterns = [
     # =========================
     # WORKFLOW
     # =========================
+    
+    # =========================
+    # VERIFICATION TECHNIQUE
+    # =========================
+
+    path(
+    "detail/<int:pk>/tech-verify/",
+    views.victim_tech_verify,
+    name="victim_tech_verify"
+    ),
+
+
 
     path(
         "detail/<int:pk>/tech-validate/",
