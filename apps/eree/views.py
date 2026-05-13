@@ -156,8 +156,58 @@ def eree_list(request):
 def eree_detail(request, pk):
     session = get_eree_or_404(pk)
 
+    workflow_history = []
+
+    # SOUMISSION
+    if session.created_at:
+        workflow_history.append({
+            "date": session.created_at,
+            "action": "Soumission",
+            "status": "Soumis",
+            "user": session.created_by,
+            "comment": "-"
+        })
+
+    # VALIDATION TECHNIQUE
+    if getattr(session, "tech_validated_at", None):
+        workflow_history.append({
+            "date": session.tech_validated_at,
+            "action": "Validation technique",
+            "status": "TECH_VALIDATED",
+            "user": session.tech_validated_by,
+            "comment": getattr(session, "tech_validation_comment", "-")
+        })
+
+    # VALIDATION PROGRAMME
+    if getattr(session, "program_validated_at", None):
+        workflow_history.append({
+            "date": session.program_validated_at,
+            "action": "Validation programme",
+            "status": "PROGRAM_VALIDATED",
+            "user": session.program_validated_by,
+            "comment": getattr(session, "program_validation_comment", "-")
+        })
+
+    # APPROBATION
+    if getattr(session, "approved_at", None):
+        workflow_history.append({
+            "date": session.approved_at,
+            "action": "Approbation finale",
+            "status": "APPROVED",
+            "user": session.approved_by,
+            "comment": getattr(session, "approval_comment", "-")
+        })
+
+    workflow_history = sorted(
+        workflow_history,
+        key=lambda x: x["date"],
+        reverse=True
+    )
+
     context = {
         "session": session,
+        "workflow_history": workflow_history,
+
         "can_edit": can_edit_accident(request.user),
         "can_tech_validate": can_tech_validate(request.user),
         "can_program_validate": can_program_validate(request.user),
@@ -878,3 +928,5 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
 
 def eree_dashboard_page2(request):
     return eree_dashboard(request, template_name="eree/eree_dashboard_page2.html")
+
+

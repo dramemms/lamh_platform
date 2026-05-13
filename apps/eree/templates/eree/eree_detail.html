@@ -120,7 +120,9 @@
                 {{ session.reference|default:"-" }}
                 {% if session.title %} - {{ session.title }}{% endif %}
             </h3>
+
             <br>
+
             <div class="mb-3 text-muted">
                 📅 {{ session.session_date|date:"d/m/Y"|default:"-" }}
                 &nbsp; | &nbsp;
@@ -129,7 +131,9 @@
                 {% if session.commune %}/ {{ session.commune.name }}{% endif %}
                 {% if session.village %}/ {{ session.village }}{% endif %}
             </div>
+
             <br>
+
             <p class="mb-3">
                 <strong>Statut :</strong>
                 <span class="workflow-badge">{{ session.get_status_display }}</span>
@@ -152,13 +156,11 @@
                     <a href="{% url 'eree_tech_validate' session.pk %}" class="btn btn-primary">
                         Valider techniquement
                     </a>
-                {% endif %}
 
-    {% if can_tech_validate and session.status == "SUBMITTED" %}
-    <a href="{% url 'eree_tech_reject' session.pk %}" class="btn btn-outline-danger">
-        Retourner au soumissionnaire
-    </a>
-{% endif %}
+                    <a href="{% url 'eree_tech_reject' session.pk %}" class="btn btn-outline-danger">
+                        Retourner au soumissionnaire
+                    </a>
+                {% endif %}
 
                 {% if can_program_validate and session.status == "TECH_VALIDATED" %}
                     <a href="{% url 'eree_program_validate' session.pk %}" class="btn btn-success">
@@ -183,27 +185,33 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Identification</div>
+
             <div class="info-grid">
                 <div class="info-item">
                     <span class="info-label">Référence</span>
                     <div class="info-value">{{ session.reference|default:"-" }}</div>
                 </div>
+
                 <div class="info-item">
                     <span class="info-label">Titre</span>
                     <div class="info-value">{{ session.title|default:"-" }}</div>
                 </div>
+
                 <div class="info-item">
                     <span class="info-label">Kobo Submission ID</span>
                     <div class="info-value">{{ session.kobo_submission_id|default:"-" }}</div>
                 </div>
+
                 <div class="info-item">
                     <span class="info-label">Kobo UUID</span>
                     <div class="info-value">{{ session.kobo_uuid|default:"-" }}</div>
                 </div>
+
                 <div class="info-item">
                     <span class="info-label">Soumis dans Kobo le</span>
                     <div class="info-value">{{ session.submitted_at_kobo|date:"d/m/Y H:i"|default:"-" }}</div>
                 </div>
+
                 <div class="info-item">
                     <span class="info-label">Créé le</span>
                     <div class="info-value">{{ session.created_at|date:"d/m/Y H:i"|default:"-" }}</div>
@@ -216,6 +224,7 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Informations générales / Weekly</div>
+
             <div class="info-grid">
                 <div class="info-item">
                     <span class="info-label">Rapporté par</span>
@@ -264,6 +273,7 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Session et localisation</div>
+
             <div class="info-grid">
                 <div class="info-item">
                     <span class="info-label">Date session</span>
@@ -367,6 +377,7 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Participants humanitaires</div>
+
             <div class="info-grid">
                 <div class="info-item">
                     <span class="info-label">Hommes humanitaires</span>
@@ -385,6 +396,7 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Participants PDI</div>
+
             <table class="sub-table">
                 <thead>
                     <tr>
@@ -395,14 +407,63 @@
                         <th>Handicap</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    <tr><td>0-5 ans</td><td>{{ session.pdi_boys_0_5 }}</td><td>{{ session.pdi_boys_0_5_dis }}</td><td>{{ session.pdi_girls_0_5 }}</td><td>{{ session.pdi_girls_0_5_dis }}</td></tr>
-                    <tr><td>6-14 ans</td><td>{{ session.pdi_boys_6_14 }}</td><td>{{ session.pdi_boys_6_14_dis }}</td><td>{{ session.pdi_girls_6_14 }}</td><td>{{ session.pdi_girls_6_14_dis }}</td></tr>
-                    <tr><td>15-17 ans</td><td>{{ session.pdi_boys_15_17 }}</td><td>{{ session.pdi_boys_15_17_dis }}</td><td>{{ session.pdi_girls_15_17 }}</td><td>{{ session.pdi_girls_15_17_dis }}</td></tr>
-                    <tr><td>18-24 ans</td><td>{{ session.pdi_men_18_24 }}</td><td>{{ session.pdi_men_18_24_dis }}</td><td>{{ session.pdi_women_18_24 }}</td><td>{{ session.pdi_women_18_24_dis }}</td></tr>
-                    <tr><td>25-49 ans</td><td>{{ session.pdi_men_25_49 }}</td><td>{{ session.pdi_men_25_49_dis }}</td><td>{{ session.pdi_women_25_49 }}</td><td>{{ session.pdi_women_25_49_dis }}</td></tr>
-                    <tr><td>50-59 ans</td><td>{{ session.pdi_men_50_59 }}</td><td>{{ session.pdi_men_50_59_dis }}</td><td>{{ session.pdi_women_50_59 }}</td><td>{{ session.pdi_women_50_59_dis }}</td></tr>
-                    <tr><td>60+ ans</td><td>{{ session.pdi_men_60_plus }}</td><td>{{ session.pdi_men_60_plus_dis }}</td><td>{{ session.pdi_women_60_plus }}</td><td>{{ session.pdi_women_60_plus_dis }}</td></tr>
+                    <tr>
+                        <td>0-5 ans</td>
+                        <td>{{ session.pdi_boys_0_5 }}</td>
+                        <td>{{ session.pdi_boys_0_5_dis }}</td>
+                        <td>{{ session.pdi_girls_0_5 }}</td>
+                        <td>{{ session.pdi_girls_0_5_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>6-14 ans</td>
+                        <td>{{ session.pdi_boys_6_14 }}</td>
+                        <td>{{ session.pdi_boys_6_14_dis }}</td>
+                        <td>{{ session.pdi_girls_6_14 }}</td>
+                        <td>{{ session.pdi_girls_6_14_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>15-17 ans</td>
+                        <td>{{ session.pdi_boys_15_17 }}</td>
+                        <td>{{ session.pdi_boys_15_17_dis }}</td>
+                        <td>{{ session.pdi_girls_15_17 }}</td>
+                        <td>{{ session.pdi_girls_15_17_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>18-24 ans</td>
+                        <td>{{ session.pdi_men_18_24 }}</td>
+                        <td>{{ session.pdi_men_18_24_dis }}</td>
+                        <td>{{ session.pdi_women_18_24 }}</td>
+                        <td>{{ session.pdi_women_18_24_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>25-49 ans</td>
+                        <td>{{ session.pdi_men_25_49 }}</td>
+                        <td>{{ session.pdi_men_25_49_dis }}</td>
+                        <td>{{ session.pdi_women_25_49 }}</td>
+                        <td>{{ session.pdi_women_25_49_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>50-59 ans</td>
+                        <td>{{ session.pdi_men_50_59 }}</td>
+                        <td>{{ session.pdi_men_50_59_dis }}</td>
+                        <td>{{ session.pdi_women_50_59 }}</td>
+                        <td>{{ session.pdi_women_50_59_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>60+ ans</td>
+                        <td>{{ session.pdi_men_60_plus }}</td>
+                        <td>{{ session.pdi_men_60_plus_dis }}</td>
+                        <td>{{ session.pdi_women_60_plus }}</td>
+                        <td>{{ session.pdi_women_60_plus_dis }}</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -412,6 +473,7 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Participants communauté hôte</div>
+
             <table class="sub-table">
                 <thead>
                     <tr>
@@ -422,14 +484,63 @@
                         <th>Handicap</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    <tr><td>0-5 ans</td><td>{{ session.ch_boys_0_5 }}</td><td>{{ session.ch_boys_0_5_dis }}</td><td>{{ session.ch_girls_0_5 }}</td><td>{{ session.ch_girls_0_5_dis }}</td></tr>
-                    <tr><td>6-14 ans</td><td>{{ session.ch_boys_6_14 }}</td><td>{{ session.ch_boys_6_14_dis }}</td><td>{{ session.ch_girls_6_14 }}</td><td>{{ session.ch_girls_6_14_dis }}</td></tr>
-                    <tr><td>15-17 ans</td><td>{{ session.ch_boys_15_17 }}</td><td>{{ session.ch_boys_15_17_dis }}</td><td>{{ session.ch_girls_15_17 }}</td><td>{{ session.ch_girls_15_17_dis }}</td></tr>
-                    <tr><td>18-24 ans</td><td>{{ session.ch_men_18_24 }}</td><td>{{ session.ch_men_18_24_dis }}</td><td>{{ session.ch_women_18_24 }}</td><td>{{ session.ch_women_18_24_dis }}</td></tr>
-                    <tr><td>25-49 ans</td><td>{{ session.ch_men_25_49 }}</td><td>{{ session.ch_men_25_49_dis }}</td><td>{{ session.ch_women_25_49 }}</td><td>{{ session.ch_women_25_49_dis }}</td></tr>
-                    <tr><td>50-59 ans</td><td>{{ session.ch_men_50_59 }}</td><td>{{ session.ch_men_50_59_dis }}</td><td>{{ session.ch_women_50_59 }}</td><td>{{ session.ch_women_50_59_dis }}</td></tr>
-                    <tr><td>60+ ans</td><td>{{ session.ch_men_60_plus }}</td><td>{{ session.ch_men_60_plus_dis }}</td><td>{{ session.ch_women_60_plus }}</td><td>{{ session.ch_women_60_plus_dis }}</td></tr>
+                    <tr>
+                        <td>0-5 ans</td>
+                        <td>{{ session.ch_boys_0_5 }}</td>
+                        <td>{{ session.ch_boys_0_5_dis }}</td>
+                        <td>{{ session.ch_girls_0_5 }}</td>
+                        <td>{{ session.ch_girls_0_5_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>6-14 ans</td>
+                        <td>{{ session.ch_boys_6_14 }}</td>
+                        <td>{{ session.ch_boys_6_14_dis }}</td>
+                        <td>{{ session.ch_girls_6_14 }}</td>
+                        <td>{{ session.ch_girls_6_14_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>15-17 ans</td>
+                        <td>{{ session.ch_boys_15_17 }}</td>
+                        <td>{{ session.ch_boys_15_17_dis }}</td>
+                        <td>{{ session.ch_girls_15_17 }}</td>
+                        <td>{{ session.ch_girls_15_17_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>18-24 ans</td>
+                        <td>{{ session.ch_men_18_24 }}</td>
+                        <td>{{ session.ch_men_18_24_dis }}</td>
+                        <td>{{ session.ch_women_18_24 }}</td>
+                        <td>{{ session.ch_women_18_24_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>25-49 ans</td>
+                        <td>{{ session.ch_men_25_49 }}</td>
+                        <td>{{ session.ch_men_25_49_dis }}</td>
+                        <td>{{ session.ch_women_25_49 }}</td>
+                        <td>{{ session.ch_women_25_49_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>50-59 ans</td>
+                        <td>{{ session.ch_men_50_59 }}</td>
+                        <td>{{ session.ch_men_50_59_dis }}</td>
+                        <td>{{ session.ch_women_50_59 }}</td>
+                        <td>{{ session.ch_women_50_59_dis }}</td>
+                    </tr>
+
+                    <tr>
+                        <td>60+ ans</td>
+                        <td>{{ session.ch_men_60_plus }}</td>
+                        <td>{{ session.ch_men_60_plus_dis }}</td>
+                        <td>{{ session.ch_women_60_plus }}</td>
+                        <td>{{ session.ch_women_60_plus_dis }}</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -439,6 +550,7 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Qualité et supports</div>
+
             <div class="info-grid">
                 <div class="info-item">
                     <span class="info-label">Dépliants adultes</span>
@@ -482,6 +594,7 @@
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Totaux</div>
+
             <div class="info-grid">
                 <div class="info-item">
                     <span class="info-label">Total PDI</span>
@@ -501,7 +614,44 @@
         </div>
     </div>
 
-    <!-- Historique -->
+    <!-- Historique workflow validation -->
+    <div class="card section-card mb-4">
+        <div class="card-body">
+            <div class="section-title">Historique du workflow de validation</div>
+
+            {% if workflow_history %}
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Action</th>
+                                <th>Statut</th>
+                                <th>Utilisateur</th>
+                                <th>Commentaire</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for item in workflow_history %}
+                                <tr>
+                                    <td>{{ item.date|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ item.action }}</td>
+                                    <td>{{ item.status }}</td>
+                                    <td>{{ item.user|default:"-" }}</td>
+                                    <td>{{ item.comment|default:"-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">Aucun historique de validation enregistré.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Historique des modifications -->
     <div class="card section-card mb-4">
         <div class="card-body">
             <div class="section-title">Historique des modifications</div>
@@ -520,6 +670,7 @@
                                 <th>Commentaire</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             {% for log in session.change_logs.all %}
                                 <tr>
