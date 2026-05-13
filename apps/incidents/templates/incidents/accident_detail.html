@@ -149,6 +149,14 @@
             Modifier
           </a>
         {% endif %}
+
+        {% if accident.status == "RETURNED_FOR_CORRECTION" %}
+       <a href="{% url 'accident_resubmit' accident.pk %}" class="btn btn-warning">
+        Ressoumettre
+          </a>
+        {% endif %}
+
+
       </div>
 
       {% if accident.rejection_reason %}

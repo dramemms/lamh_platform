@@ -1359,3 +1359,25 @@ def victim_add_assistance_kobo(request, pk):
 
     return redirect(final_url)
 
+@login_required
+def victim_resubmit(request, pk):
+    victim = get_victim_or_404(pk)
+
+    if request.user != victim.created_by and not request.user.is_superuser:
+        messages.error(request, "Non autorisé.")
+        return redirect("victim_detail", pk=pk)
+
+    if victim.status != Victim.STATUS_RETURNED_FOR_CORRECTION:
+        messages.error(request, "Cette fiche victime ne peut pas être ressoumise.")
+        return redirect("victim_detail", pk=pk)
+
+    victim.transition_to(
+        Victim.STATUS_SUBMITTED,
+        user=request.user,
+        comment="Fiche victime corrigée et ressoumise.",
+    )
+
+    notify_victim_submitted(victim)
+
+    messages.success(request, "La fiche victime a été ressoumise avec succès.")
+    return redirect("victim_detail", pk=pk)

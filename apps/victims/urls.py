@@ -123,4 +123,7 @@ urlpatterns = [
         name="kobo_victim_webhook"
     ),
 
+    path( "detail/<int:pk>/resubmit/",views.victim_resubmit,name="victim_resubmit",),
+
+
 ]

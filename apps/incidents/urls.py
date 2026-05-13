@@ -118,4 +118,6 @@ urlpatterns = [
         name="kobo_accident_webhook",
     ),
 
+    path("detail/<int:pk>/resubmit/", views.accident_resubmit, name="accident_resubmit",),
+
 ]

@@ -64,6 +64,15 @@
         {% if can_edit_victim and victim.status != "APPROVED" %}
           <a href="{% url 'victim_edit' victim.pk %}" class="btn btn-danger btn-sm">Modifier</a>
         {% endif %}
+        
+        {% if victim.status == "RETURNED_FOR_CORRECTION" %}
+        <a href="{% url 'victim_resubmit' victim.pk %}" class="btn btn-warning">
+        Ressoumettre
+        </a>
+       {% endif %}
+
+
+
       </div>
 
       {% if victim.rejection_reason %}

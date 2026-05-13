@@ -1512,3 +1512,26 @@ def kobo_accident_webhook(request):
     except Exception as e:
         print("WEBHOOK ERROR:", str(e))
         return JsonResponse({"error": str(e)}, status=500)
+    
+@login_required
+def accident_resubmit(request, pk):
+    accident = get_accident_or_404(pk)
+
+    if request.user != accident.created_by and not request.user.is_superuser:
+        messages.error(request, "Non autorisé.")
+        return redirect("accident_detail", pk=pk)
+
+    if accident.status != Accident.STATUS_RETURNED_FOR_CORRECTION:
+        messages.error(request, "Cet accident ne peut pas être ressoumis.")
+        return redirect("accident_detail", pk=pk)
+
+    accident.transition_to(
+        Accident.STATUS_SUBMITTED,
+        user=request.user,
+        comment="Accident corrigé et ressoumis.",
+    )
+
+    notify_accident_submitted(accident)
+
+    messages.success(request, "L'accident a été ressoumis avec succès.")
+    return redirect("accident_detail", pk=pk)
