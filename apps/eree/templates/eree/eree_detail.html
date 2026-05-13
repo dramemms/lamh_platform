@@ -147,10 +147,18 @@
 
             <div class="actions-row">
                 <a href="{% url 'eree_list' %}" class="btn btn-outline-secondary">← Retour à la liste</a>
-
                 {% if can_edit or can_edit_eree %}
-                    <a href="{% url 'eree_edit' session.pk %}" class="btn btn-outline-primary">Modifier</a>
-                {% endif %}
+               <a href="{% url 'eree_edit' session.pk %}" class="btn btn-outline-primary">
+                   Modifier
+              </a>
+            {% endif %}
+
+            {% if session.status == "RETURNED_FOR_CORRECTION" and request.user == session.created_by or user.is_superuser %}
+            <a href="{% url 'eree_submit' session.pk %}" class="btn btn-warning">
+            Ressoumettre
+            </a>
+            {% endif %}
+               
 
                 {% if can_tech_validate and session.status == "SUBMITTED" %}
                     <a href="{% url 'eree_tech_validate' session.pk %}" class="btn btn-primary">

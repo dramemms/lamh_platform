@@ -23,4 +23,6 @@ urlpatterns = [
 
     # KOBO
     path("api/kobo/webhook/", kobo_eree_webhook, name="kobo_eree_webhook"),
+
+    path("detail/<int:pk>/resubmit/",views.eree_resubmit,name="eree_resubmit",),
 ]

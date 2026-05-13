@@ -340,7 +340,40 @@ def eree_edit(request, pk):
             "submit_label": "Mettre à jour",
         },
     )
+@login_required
+def eree_resubmit(request, pk):
+    session = get_eree_or_404(pk)
 
+    # Autoriser uniquement le soumissionnaire ou admin
+    if request.user != session.created_by and not request.user.is_superuser:
+        messages.error(request, "Non autorisé.")
+        return redirect("eree_detail", pk=pk)
+
+    # Statuts autorisés
+    allowed_statuses = [
+        EREESession.STATUS_RETURNED_FOR_CORRECTION,
+    ]
+
+    if session.status not in allowed_statuses:
+        messages.error(request, "Cette session ne peut pas être ressoumise.")
+        return redirect("eree_detail", pk=pk)
+
+    # Revenir à soumis
+    session.transition_to(
+        EREESession.STATUS_SUBMITTED,
+        user=request.user,
+        comment="Session corrigée et ressoumise.",
+    )
+
+    # Notification
+    notify_eree_submitted(session)
+
+    messages.success(
+        request,
+        "La session EREE a été ressoumise avec succès."
+    )
+
+    return redirect("eree_detail", pk=pk)
 
 # ==========================================================
 # WORKFLOW EREE
