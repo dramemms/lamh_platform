@@ -10,6 +10,10 @@ from apps.geo.models import Cercle, Commune, Region
 from apps.incidents.models import Accident
 from apps.victims.models import Victim
 
+from apps.notifications.services import notify_victim_submitted
+
+
+
 
 # =========================================================
 # HELPERS
@@ -672,10 +676,14 @@ def kobo_victim_webhook(request):
             Victim,
             values
         )
-
+        
         victim = Victim.objects.create(
             **values
         )
+
+        notify_victim_submitted(victim)
+
+             
 
         return JsonResponse(
             {

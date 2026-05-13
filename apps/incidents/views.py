@@ -1490,6 +1490,14 @@ def kobo_accident_webhook(request):
                 ),
             },
         )
+        
+        if accident.status == Accident.STATUS_DRAFT:
+            accident.status = Accident.STATUS_SUBMITTED
+            accident.save()
+
+        if created:
+           notify_accident_submitted(accident)
+
 
         return JsonResponse(
             {

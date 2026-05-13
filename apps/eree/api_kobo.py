@@ -2,12 +2,28 @@ import json
 from datetime import datetime
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date, parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.geo.models import Region, Cercle, Commune
+from apps.notifications.services import notify_eree_submitted
+
 from .models import EREESession
+
+
+
+User = get_user_model()
+
+
+def get_kobo_user():
+    user = User.objects.filter(username="kobo").first()
+
+    if user:
+        return user
+
+    return User.objects.filter(is_superuser=True).first()
 
 
 def _to_int(v):
@@ -57,6 +73,7 @@ def _find_cercle(value, region=None):
         return None
 
     qs = Cercle.objects.all()
+
     if region:
         qs = qs.filter(region=region)
 
@@ -77,6 +94,7 @@ def _find_commune(value, cercle=None):
         return None
 
     qs = Commune.objects.all()
+
     if cercle:
         qs = qs.filter(cercle=cercle)
 
@@ -102,6 +120,7 @@ def _extract_gps(data):
             return gps, None, None
 
     geolocation = data.get("_geolocation")
+
     if isinstance(geolocation, list) and len(geolocation) >= 2:
         try:
             lat = float(geolocation[0])
@@ -166,6 +185,7 @@ def kobo_eree_webhook(request):
 
     if not commune and commune_value:
         commune = _find_commune(commune_value)
+
         if commune:
             cercle = commune.cercle
             region = commune.cercle.region
@@ -209,6 +229,7 @@ def kobo_eree_webhook(request):
     quality_date = parse_date(data.get("g_quality/quality_date"))
 
     organisation = data.get("g_weekly/organisation") or "Sans organisation"
+
     location_gps, latitude, longitude = _extract_gps(data)
 
     total_pdi = sum(_to_int(v) for k, v in data.items() if "pdi_" in k)
@@ -227,6 +248,8 @@ def kobo_eree_webhook(request):
     obj, created = EREESession.objects.update_or_create(
         kobo_submission_id=str(submission_id),
         defaults={
+            "created_by": get_kobo_user(),
+
             "reference": reference,
             "title": f"EREE - {organisation}",
 
@@ -265,26 +288,32 @@ def kobo_eree_webhook(request):
             "pdi_boys_0_5_dis": _to_int(data.get("g_pdi/pdi_boys_0_5_dis")),
             "pdi_girls_0_5": _to_int(data.get("g_pdi/pdi_girls_0_5")),
             "pdi_girls_0_5_dis": _to_int(data.get("g_pdi/pdi_girls_0_5_dis")),
+
             "pdi_boys_6_14": _to_int(data.get("g_pdi/pdi_boys_6_14")),
             "pdi_boys_6_14_dis": _to_int(data.get("g_pdi/pdi_boys_6_14_dis")),
             "pdi_girls_6_14": _to_int(data.get("g_pdi/pdi_girls_6_14")),
             "pdi_girls_6_14_dis": _to_int(data.get("g_pdi/pdi_girls_6_14_dis")),
+
             "pdi_boys_15_17": _to_int(data.get("g_pdi/pdi_boys_15_17")),
             "pdi_boys_15_17_dis": _to_int(data.get("g_pdi/pdi_boys_15_17_dis")),
             "pdi_girls_15_17": _to_int(data.get("g_pdi/pdi_girls_15_17")),
             "pdi_girls_15_17_dis": _to_int(data.get("g_pdi/pdi_girls_15_17_dis")),
+
             "pdi_men_18_24": _to_int(data.get("g_pdi/pdi_men_18_24")),
             "pdi_men_18_24_dis": _to_int(data.get("g_pdi/pdi_men_18_24_dis")),
             "pdi_women_18_24": _to_int(data.get("g_pdi/pdi_women_18_24")),
             "pdi_women_18_24_dis": _to_int(data.get("g_pdi/pdi_women_18_24_dis")),
+
             "pdi_men_25_49": _to_int(data.get("g_pdi/pdi_men_25_49")),
             "pdi_men_25_49_dis": _to_int(data.get("g_pdi/pdi_men_25_49_dis")),
             "pdi_women_25_49": _to_int(data.get("g_pdi/pdi_women_25_49")),
             "pdi_women_25_49_dis": _to_int(data.get("g_pdi/pdi_women_25_49_dis")),
+
             "pdi_men_50_59": _to_int(data.get("g_pdi/pdi_men_50_59")),
             "pdi_men_50_59_dis": _to_int(data.get("g_pdi/pdi_men_50_59_dis")),
             "pdi_women_50_59": _to_int(data.get("g_pdi/pdi_women_50_59")),
             "pdi_women_50_59_dis": _to_int(data.get("g_pdi/pdi_women_50_59_dis")),
+
             "pdi_men_60_plus": _to_int(data.get("g_pdi/pdi_men_60_plus")),
             "pdi_men_60_plus_dis": _to_int(data.get("g_pdi/pdi_men_60_plus_dis")),
             "pdi_women_60_plus": _to_int(data.get("g_pdi/pdi_women_60_plus")),
@@ -294,30 +323,37 @@ def kobo_eree_webhook(request):
             "ch_boys_0_5_dis": _to_int(data.get("g_ch/ch_boys_0_5_dis")),
             "ch_girls_0_5": _to_int(data.get("g_ch/ch_girls_0_5")),
             "ch_girls_0_5_dis": _to_int(data.get("g_ch/ch_girls_0_5_dis")),
+
             "ch_boys_6_14": _to_int(data.get("g_ch/ch_boys_6_14")),
             "ch_boys_6_14_dis": _to_int(data.get("g_ch/ch_boys_6_14_dis")),
             "ch_girls_6_14": _to_int(data.get("g_ch/ch_girls_6_14")),
             "ch_girls_6_14_dis": _to_int(data.get("g_ch/ch_girls_6_14_dis")),
+
             "ch_boys_15_17": _to_int(data.get("g_ch/ch_boys_15_17")),
             "ch_boys_15_17_dis": _to_int(data.get("g_ch/ch_boys_15_17_dis")),
             "ch_girls_15_17": _to_int(data.get("g_ch/ch_girls_15_17")),
             "ch_girls_15_17_dis": _to_int(data.get("g_ch/ch_girls_15_17_dis")),
+
             "ch_men_18_24": _to_int(data.get("g_ch/ch_men_18_24")),
             "ch_men_18_24_dis": _to_int(data.get("g_ch/ch_men_18_24_dis")),
             "ch_women_18_24": _to_int(data.get("g_ch/ch_women_18_24")),
             "ch_women_18_24_dis": _to_int(data.get("g_ch/ch_women_18_24_dis")),
+
             "ch_men_25_49": _to_int(data.get("g_ch/ch_men_25_49")),
             "ch_men_25_49_dis": _to_int(data.get("g_ch/ch_men_25_49_dis")),
             "ch_women_25_49": _to_int(data.get("g_ch/ch_women_25_49")),
             "ch_women_25_49_dis": _to_int(data.get("g_ch/ch_women_25_49_dis")),
+
             "ch_men_50_59": _to_int(data.get("g_ch/ch_men_50_59")),
             "ch_men_50_59_dis": _to_int(data.get("g_ch/ch_men_50_59_dis")),
             "ch_women_50_59": _to_int(data.get("g_ch/ch_women_50_59")),
             "ch_women_50_59_dis": _to_int(data.get("g_ch/ch_women_50_59_dis")),
+
             "ch_men_60_plus": _to_int(data.get("g_ch/ch_men_60_plus")),
             "ch_men_60_plus_dis": _to_int(data.get("g_ch/ch_men_60_plus_dis")),
             "ch_women_60_plus": _to_int(data.get("g_ch/ch_women_60_plus")),
             "ch_women_60_plus_dis": _to_int(data.get("g_ch/ch_women_60_plus_dis")),
+
             "leaflets_adults": _to_int(data.get("g_ch/leaflets_adults")),
             "leaflets_children": _to_int(data.get("g_ch/leaflets_children")),
 
@@ -337,18 +373,24 @@ def kobo_eree_webhook(request):
         },
     )
 
+    if created:
+       notify_eree_submitted(obj)
+
     if obj.status == EREESession.STATUS_DRAFT:
         obj.status = EREESession.STATUS_SUBMITTED
         obj.submitted_at = obj.submitted_at_kobo
         obj.save()
 
+    if created:
+        notify_eree_submitted(obj)
+
     return JsonResponse(
-    {
-        "success": True,
-        "created": created,
-        "reference": obj.reference,
-        "participants": obj.total_participants,
-        "total_pdi": obj.total_pdi,
-        "total_host_community": obj.total_host_community,
-    }
-)
+        {
+            "success": True,
+            "created": created,
+            "reference": obj.reference,
+            "participants": obj.total_participants,
+            "total_pdi": obj.total_pdi,
+            "total_host_community": obj.total_host_community,
+        }
+    )
