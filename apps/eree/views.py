@@ -13,6 +13,7 @@ from apps.core.permissions import (
     can_edit_accident,
     can_program_validate,
     can_tech_validate,
+    can_tech_verify,
 )
 from apps.notifications.services import (
     notify_eree_submitted,
@@ -50,10 +51,11 @@ def display_value(value):
 
 def get_workflow_step_label(session):
     status_map = {
-        EREESession.STATUS_DRAFT: "Brouillon",
         EREESession.STATUS_SUBMITTED: "Soumission",
+        EREESession.STATUS_TECH_VERIFIED: "Vérification technique",
         EREESession.STATUS_TECH_VALIDATED: "Validation technique",
         EREESession.STATUS_PROGRAM_VALIDATED: "Validation programme",
+        EREESession.STATUS_RETURNED_FOR_CORRECTION: "Retour pour correction",
         EREESession.STATUS_APPROVED: "Approbation finale",
     }
     return status_map.get(session.status, session.get_status_display())
@@ -64,6 +66,7 @@ def get_eree_queryset():
         "region",
         "cercle",
         "commune",
+        "tech_verified_by",
         "tech_validated_by",
         "program_validated_by",
         "approved_by",
@@ -115,10 +118,11 @@ def eree_list(request):
         sessions = sessions.filter(commune__name__icontains=selected_commune)
 
     allowed_statuses = {
-        EREESession.STATUS_DRAFT,
         EREESession.STATUS_SUBMITTED,
+        EREESession.STATUS_TECH_VERIFIED,
         EREESession.STATUS_TECH_VALIDATED,
         EREESession.STATUS_PROGRAM_VALIDATED,
+        EREESession.STATUS_RETURNED_FOR_CORRECTION,
         EREESession.STATUS_APPROVED,
     }
 
@@ -133,11 +137,21 @@ def eree_list(request):
         "sessions": sessions,
         "count": sessions.count(),
         "count_all": base_queryset.count(),
-        "count_draft": base_queryset.filter(status=EREESession.STATUS_DRAFT).count(),
-        "count_submitted": base_queryset.filter(status=EREESession.STATUS_SUBMITTED).count(),
-        "count_tech": base_queryset.filter(status=EREESession.STATUS_TECH_VALIDATED).count(),
-        "count_program": base_queryset.filter(status=EREESession.STATUS_PROGRAM_VALIDATED).count(),
-        "count_approved": base_queryset.filter(status=EREESession.STATUS_APPROVED).count(),
+        "count_submitted": base_queryset.filter(
+            status=EREESession.STATUS_SUBMITTED
+        ).count(),
+        "count_tech_verified": base_queryset.filter(
+            status=EREESession.STATUS_TECH_VERIFIED
+        ).count(),
+        "count_tech": base_queryset.filter(
+            status=EREESession.STATUS_TECH_VALIDATED
+        ).count(),
+        "count_program": base_queryset.filter(
+            status=EREESession.STATUS_PROGRAM_VALIDATED
+        ).count(),
+        "count_approved": base_queryset.filter(
+            status=EREESession.STATUS_APPROVED
+        ).count(),
         "query": query,
         "selected_region": selected_region,
         "selected_cercle": selected_cercle,
@@ -158,57 +172,62 @@ def eree_detail(request, pk):
 
     workflow_history = []
 
-    # SOUMISSION
     if session.created_at:
         workflow_history.append({
             "date": session.created_at,
             "action": "Soumission",
-            "status": "Soumis",
+            "status": "SUBMITTED",
             "user": session.created_by,
-            "comment": "-"
+            "comment": "-",
         })
 
-    # VALIDATION TECHNIQUE
+    if getattr(session, "tech_verified_at", None):
+        workflow_history.append({
+            "date": session.tech_verified_at,
+            "action": "Vérification technique",
+            "status": "TECH_VERIFIED",
+            "user": session.tech_verified_by,
+            "comment": getattr(session, "validation_comment", "-"),
+        })
+
     if getattr(session, "tech_validated_at", None):
         workflow_history.append({
             "date": session.tech_validated_at,
             "action": "Validation technique",
             "status": "TECH_VALIDATED",
             "user": session.tech_validated_by,
-            "comment": getattr(session, "tech_validation_comment", "-")
+            "comment": getattr(session, "validation_comment", "-"),
         })
 
-    # VALIDATION PROGRAMME
     if getattr(session, "program_validated_at", None):
         workflow_history.append({
             "date": session.program_validated_at,
             "action": "Validation programme",
             "status": "PROGRAM_VALIDATED",
             "user": session.program_validated_by,
-            "comment": getattr(session, "program_validation_comment", "-")
+            "comment": getattr(session, "validation_comment", "-"),
         })
 
-    # APPROBATION
     if getattr(session, "approved_at", None):
         workflow_history.append({
             "date": session.approved_at,
             "action": "Approbation finale",
             "status": "APPROVED",
             "user": session.approved_by,
-            "comment": getattr(session, "approval_comment", "-")
+            "comment": getattr(session, "validation_comment", "-"),
         })
 
     workflow_history = sorted(
         workflow_history,
         key=lambda x: x["date"],
-        reverse=True
+        reverse=True,
     )
 
     context = {
         "session": session,
         "workflow_history": workflow_history,
-
         "can_edit": can_edit_accident(request.user),
+        "can_tech_verify": can_tech_verify(request.user),
         "can_tech_validate": can_tech_validate(request.user),
         "can_program_validate": can_program_validate(request.user),
         "can_approve": can_approve(request.user),
@@ -340,46 +359,67 @@ def eree_edit(request, pk):
             "submit_label": "Mettre à jour",
         },
     )
+
+
+# ==========================================================
+# RESSOUMISSION
+# ==========================================================
+
 @login_required
 def eree_resubmit(request, pk):
     session = get_eree_or_404(pk)
 
-    # Autoriser uniquement le soumissionnaire ou admin
     if request.user != session.created_by and not request.user.is_superuser:
         messages.error(request, "Non autorisé.")
         return redirect("eree_detail", pk=pk)
 
-    # Statuts autorisés
-    allowed_statuses = [
-        EREESession.STATUS_RETURNED_FOR_CORRECTION,
-    ]
-
-    if session.status not in allowed_statuses:
+    if session.status != EREESession.STATUS_RETURNED_FOR_CORRECTION:
         messages.error(request, "Cette session ne peut pas être ressoumise.")
         return redirect("eree_detail", pk=pk)
 
-    # Revenir à soumis
     session.transition_to(
         EREESession.STATUS_SUBMITTED,
         user=request.user,
         comment="Session corrigée et ressoumise.",
     )
 
-    # Notification
     notify_eree_submitted(session)
 
     messages.success(
         request,
-        "La session EREE a été ressoumise avec succès."
+        "La session EREE a été ressoumise avec succès.",
     )
 
     return redirect("eree_detail", pk=pk)
 
+
 # ==========================================================
 # WORKFLOW EREE
-# Workflow corrigé :
-# SUBMITTED -> TECH_VALIDATED -> PROGRAM_VALIDATED -> APPROVED
+# SUBMITTED -> TECH_VERIFIED -> TECH_VALIDATED
+# -> PROGRAM_VALIDATED -> APPROVED
 # ==========================================================
+
+@login_required
+def eree_tech_verify(request, pk):
+    session = get_eree_or_404(pk)
+
+    if not can_tech_verify(request.user):
+        messages.error(request, "Non autorisé.")
+        return redirect("eree_detail", pk=pk)
+
+    if session.status != EREESession.STATUS_SUBMITTED:
+        messages.error(request, "Transition invalide.")
+        return redirect("eree_detail", pk=pk)
+
+    session.transition_to(
+        EREESession.STATUS_TECH_VERIFIED,
+        user=request.user,
+        comment="Vérification technique effectuée.",
+    )
+
+    messages.success(request, "Vérification technique effectuée.")
+    return redirect("eree_detail", pk=pk)
+
 
 @login_required
 def eree_tech_validate(request, pk):
@@ -389,14 +429,22 @@ def eree_tech_validate(request, pk):
         messages.error(request, "Non autorisé.")
         return redirect("eree_detail", pk=pk)
 
-    if session.status != EREESession.STATUS_SUBMITTED:
+    if session.status != EREESession.STATUS_TECH_VERIFIED:
         messages.error(request, "Transition invalide.")
         return redirect("eree_detail", pk=pk)
 
-    session.transition_to(EREESession.STATUS_TECH_VALIDATED, user=request.user)
+    session.transition_to(
+        EREESession.STATUS_TECH_VALIDATED,
+        user=request.user,
+        comment="Validation technique effectuée.",
+    )
+
     notify_eree_tech_validated(session)
 
-    messages.success(request, "Validation technique effectuée. La session est maintenant transmise au Programme Manager.")
+    messages.success(
+        request,
+        "Validation technique effectuée. La session est maintenant transmise au Project Manager.",
+    )
     return redirect("eree_detail", pk=pk)
 
 
@@ -412,10 +460,18 @@ def eree_program_validate(request, pk):
         messages.error(request, "Transition invalide.")
         return redirect("eree_detail", pk=pk)
 
-    session.transition_to(EREESession.STATUS_PROGRAM_VALIDATED, user=request.user)
+    session.transition_to(
+        EREESession.STATUS_PROGRAM_VALIDATED,
+        user=request.user,
+        comment="Validation programme effectuée.",
+    )
+
     notify_eree_program_validated(session)
 
-    messages.success(request, "Validation programme effectuée. La session attend l'approbation finale.")
+    messages.success(
+        request,
+        "Validation programme effectuée. La session attend l'approbation finale.",
+    )
     return redirect("eree_detail", pk=pk)
 
 
@@ -431,7 +487,12 @@ def eree_approve(request, pk):
         messages.error(request, "Transition invalide.")
         return redirect("eree_detail", pk=pk)
 
-    session.transition_to(EREESession.STATUS_APPROVED, user=request.user)
+    session.transition_to(
+        EREESession.STATUS_APPROVED,
+        user=request.user,
+        comment="Approbation finale effectuée.",
+    )
+
     notify_eree_approved(session)
 
     messages.success(request, "Activité EREE approuvée définitivement.")
@@ -440,10 +501,20 @@ def eree_approve(request, pk):
 
 @login_required
 def eree_tech_reject(request, pk):
-    session = get_object_or_404(EREESession, pk=pk)
+    session = get_eree_or_404(pk)
 
-    if not can_tech_validate(request.user):
+    if not (
+        can_tech_verify(request.user)
+        or can_tech_validate(request.user)
+    ):
         messages.error(request, "Action non autorisée.")
+        return redirect("eree_detail", pk=pk)
+
+    if session.status not in [
+        EREESession.STATUS_SUBMITTED,
+        EREESession.STATUS_TECH_VERIFIED,
+    ]:
+        messages.error(request, "Transition invalide.")
         return redirect("eree_detail", pk=pk)
 
     if request.method == "POST":
@@ -467,38 +538,56 @@ def eree_tech_reject(request, pk):
             )
             return redirect("eree_detail", pk=pk)
 
-    return render(request, "eree/eree_workflow_form.html", {
-        "session": session,
-        "action": "tech_reject",
-    })
+    return render(
+        request,
+        "eree/eree_workflow_form.html",
+        {
+            "session": session,
+            "action": "tech_reject",
+        },
+    )
 
 
 @login_required
 def eree_program_reject(request, pk):
     session = get_eree_or_404(pk)
 
-    if not can_program_validate(request.user):
+    if not (
+        can_program_validate(request.user)
+        or can_approve(request.user)
+    ):
         messages.error(request, "Non autorisé.")
         return redirect("eree_detail", pk=pk)
 
-    if session.status != EREESession.STATUS_TECH_VALIDATED:
-        messages.error(request, "Transition invalide.")
+    if session.status == EREESession.STATUS_PROGRAM_VALIDATED:
+        session.transition_to(
+            EREESession.STATUS_TECH_VALIDATED,
+            user=request.user,
+            comment="Retour à la validation technique.",
+        )
+
+        notify_eree_returned(session)
+
+        messages.warning(request, "Session retournée à la validation technique.")
         return redirect("eree_detail", pk=pk)
 
-    session.transition_to(
-        EREESession.STATUS_TECH_VALIDATED,
-        user=request.user,
-        comment="Retour à la validation technique",
-    )
+    if session.status == EREESession.STATUS_TECH_VALIDATED:
+        session.transition_to(
+            EREESession.STATUS_RETURNED_FOR_CORRECTION,
+            user=request.user,
+            comment="Retour au soumissionnaire pour correction.",
+            reason="Retour au soumissionnaire pour correction.",
+        )
 
-    notify_eree_returned(session)
+        notify_eree_returned(session)
 
-    messages.warning(request, "Session retournée à la validation technique.")
+        messages.warning(request, "Session retournée au soumissionnaire.")
+        return redirect("eree_detail", pk=pk)
+
+    messages.error(request, "Transition invalide.")
     return redirect("eree_detail", pk=pk)
 
 
-# Ancienne vue conservée pour éviter une erreur si l'URL existe encore.
-# Elle ne change plus le statut : après validation technique, le Programme Manager peut valider directement.
 @login_required
 def eree_send_to_program(request, pk):
     session = get_eree_or_404(pk)
@@ -512,7 +601,7 @@ def eree_send_to_program(request, pk):
         return redirect("eree_detail", pk=pk)
 
     notify_eree_tech_validated(session)
-    messages.success(request, "Notification envoyée au Programme Manager.")
+    messages.success(request, "Notification envoyée au Project Manager.")
     return redirect("eree_detail", pk=pk)
 
 
@@ -536,7 +625,16 @@ def export_eree_excel(request):
             | Q(village__icontains=query)
         )
 
-    if status:
+    allowed_statuses = {
+        EREESession.STATUS_SUBMITTED,
+        EREESession.STATUS_TECH_VERIFIED,
+        EREESession.STATUS_TECH_VALIDATED,
+        EREESession.STATUS_PROGRAM_VALIDATED,
+        EREESession.STATUS_RETURNED_FOR_CORRECTION,
+        EREESession.STATUS_APPROVED,
+    }
+
+    if status in allowed_statuses:
         sessions = sessions.filter(status=status)
 
     wb = openpyxl.Workbook()
@@ -598,7 +696,6 @@ def export_eree_excel(request):
 # ==========================================================
 # DASHBOARD EREE
 # ==========================================================
-
 
 def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
     sessions = EREESession.objects.select_related(
@@ -714,7 +811,6 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
 
     total_male = total_boys + total_men
     total_female = total_girls + total_women
-
     total_beneficiaries = total_male + total_female
 
     male_pct = round((total_male / total_beneficiaries) * 100, 1) if total_beneficiaries else 0
@@ -942,11 +1038,23 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
         "selected_commune": commune,
         "selected_periode": periode,
 
-        "sessions_labels_json": json.dumps([x["sensitization_type"] or "Non défini" for x in sessions_chart], ensure_ascii=False),
-        "sessions_values_json": json.dumps([x["total"] for x in sessions_chart], ensure_ascii=False),
+        "sessions_labels_json": json.dumps(
+            [x["sensitization_type"] or "Non défini" for x in sessions_chart],
+            ensure_ascii=False,
+        ),
+        "sessions_values_json": json.dumps(
+            [x["total"] for x in sessions_chart],
+            ensure_ascii=False,
+        ),
 
-        "funding_labels_json": json.dumps([x["funding_type"] or "Non défini" for x in funding_chart], ensure_ascii=False),
-        "funding_values_json": json.dumps([x["total"] for x in funding_chart], ensure_ascii=False),
+        "funding_labels_json": json.dumps(
+            [x["funding_type"] or "Non défini" for x in funding_chart],
+            ensure_ascii=False,
+        ),
+        "funding_values_json": json.dumps(
+            [x["total"] for x in funding_chart],
+            ensure_ascii=False,
+        ),
 
         "map_data_json": json.dumps(map_data, ensure_ascii=False),
         "age_groups_json": json.dumps(age_groups, ensure_ascii=False),
@@ -961,5 +1069,3 @@ def eree_dashboard(request, template_name="eree/eree_dashboard.html"):
 
 def eree_dashboard_page2(request):
     return eree_dashboard(request, template_name="eree/eree_dashboard_page2.html")
-
-

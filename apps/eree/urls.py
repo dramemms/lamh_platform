@@ -14,6 +14,7 @@ urlpatterns = [
     path("export-excel/", views.export_eree_excel, name="export_eree_excel"),
 
     # WORKFLOW
+    path("detail/<int:pk>/tech-verify/", views.eree_tech_verify, name="eree_tech_verify"),
     path("detail/<int:pk>/tech-validate/", views.eree_tech_validate, name="eree_tech_validate"),
     path("detail/<int:pk>/send-to-program/", views.eree_send_to_program, name="eree_send_to_program"),
     path("detail/<int:pk>/program-validate/", views.eree_program_validate, name="eree_program_validate"),
