@@ -192,3 +192,16 @@ DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",
     EMAIL_HOST_USER or "LAMH Platform <no-reply@lamh.local>"
 )
+
+# =========================
+# SESSION / LOGIN SECURITY
+# =========================
+
+# Expiration session après 1 heure
+SESSION_COOKIE_AGE = 3600
+
+# Déconnecter l'utilisateur après fermeture du navigateur
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Renouvelle la session à chaque requête
+SESSION_SAVE_EVERY_REQUEST = True
