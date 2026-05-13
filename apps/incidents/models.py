@@ -23,17 +23,19 @@ class Accident(ValidationWorkflowMixin, models.Model):
     # =========================
     # WORKFLOW COMPLET
     # =========================
-    STATUS_DRAFT = "DRAFT"
+    
     STATUS_SUBMITTED = "SUBMITTED"
+    STATUS_TECH_VERIFIED = "TECH_VERIFIED"
     STATUS_TECH_VALIDATED = "TECH_VALIDATED"
     STATUS_PROGRAM_VALIDATED = "PROGRAM_VALIDATED"
     STATUS_APPROVED = "APPROVED"
 
     STATUS_CHOICES = [
-    ("DRAFT", "Brouillon"),
+    
     ("SUBMITTED", "Soumis"),
-    ("TECH_VALIDATED", "Validé techniquement"),
-    ("PROGRAM_VALIDATED", "Validé programme"),
+    ("TECH_VERIFIED","Vérification technique"),
+    ("TECH_VALIDATED", "Validation technique"),
+    ("PROGRAM_VALIDATED", "Validation programme"),
     ("APPROVED", "Approuvé"),
     ("RETURNED_FOR_CORRECTION", "Retourné pour correction"),  # ✅
 ]
@@ -252,11 +254,10 @@ class Accident(ValidationWorkflowMixin, models.Model):
     # WORKFLOW
     # =========================
     status = models.CharField(
-        "Statut",
-        max_length=30,
-        choices=STATUS_CHOICES,
-        default=STATUS_DRAFT,
-    )
+    max_length=30,
+    choices=STATUS_CHOICES,
+    default=STATUS_SUBMITTED,
+)
 
     validation_comment = models.TextField("Commentaire de validation", blank=True, null=True)
     rejection_reason = models.TextField("Motif de rejet", blank=True, null=True)
@@ -318,12 +319,12 @@ class Accident(ValidationWorkflowMixin, models.Model):
         if not self.title:
             self.title = f"{self.reference} - {self.org_name or 'Accident'}"
 
-        if self.submitted_at and self.status == self.STATUS_DRAFT:
+        if not self.status:
             self.status = self.STATUS_SUBMITTED
 
         if self.status == self.STATUS_SUBMITTED and not self.submitted_at:
             self.submitted_at = now()
-
+ 
         super().save(*args, **kwargs)
 
     @property
@@ -337,7 +338,7 @@ class Accident(ValidationWorkflowMixin, models.Model):
 
     def transition_to(self, new_status, user=None, reason=None, comment=None):
         allowed = {
-            self.STATUS_DRAFT: {self.STATUS_SUBMITTED},
+           
             self.STATUS_SUBMITTED: {
     self.STATUS_TECH_VALIDATED,
     self.STATUS_RETURNED_FOR_CORRECTION,  # ✅ AJOUT

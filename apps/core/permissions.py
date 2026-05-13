@@ -1,12 +1,14 @@
 # apps/core/permissions.py
 
+
 def has_group(user, group_name):
     return user.is_authenticated and user.groups.filter(name=group_name).exists()
 
 
 def is_admin(user):
     return user.is_authenticated and (
-        getattr(user, "role", None) == "ADMIN" or user.is_superuser
+        getattr(user, "role", None) == "ADMIN"
+        or user.is_superuser
     )
 
 
@@ -27,6 +29,14 @@ def is_project_manager(user):
 # Alias temporaire pour ne pas casser l’ancien code
 def is_program_manager(user):
     return is_project_manager(user)
+
+
+def is_tech_verifier(user):
+    return user.is_authenticated and (
+        getattr(user, "role", None) == "TECH_VERIFIER"
+        or has_group(user, "TechVerifier")
+        or has_group(user, "TechnicalVerifier")
+    )
 
 
 def is_tech_validator(user):
@@ -60,6 +70,7 @@ def can_create_accident(user):
         is_admin(user),
         is_supervisor(user),
         is_project_manager(user),
+        is_tech_verifier(user),
         is_tech_validator(user),
         is_data_entry(user),
     ])
@@ -70,7 +81,19 @@ def can_edit_accident(user):
         is_admin(user),
         is_supervisor(user),
         is_project_manager(user),
+        is_tech_verifier(user),
         is_tech_validator(user),
+    ])
+
+
+def can_tech_verify(user):
+    if not user.is_authenticated:
+        return False
+
+    return any([
+        is_admin(user),
+        is_supervisor(user),
+        is_tech_verifier(user),
     ])
 
 
@@ -109,7 +132,11 @@ def filter_accidents_for_user(queryset, user):
 
     user_region = getattr(user, "region", None)
 
-    if (is_supervisor(user) or is_tech_validator(user)) and user_region:
+    if (
+        is_supervisor(user)
+        or is_tech_verifier(user)
+        or is_tech_validator(user)
+    ) and user_region:
         return queryset.filter(region=user_region)
 
     if is_data_entry(user):

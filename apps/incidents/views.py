@@ -1,9 +1,9 @@
 ﻿from urllib.parse import urlencode
 from collections import Counter, defaultdict
 import json
+
 from apps.geo.models import Region, Cercle, Commune
 from django.contrib.auth import get_user_model
-
 from django import forms
 from django.contrib import messages
 from django.db.models import Count, Sum
@@ -26,7 +26,9 @@ from apps.core.permissions import (
     can_edit_accident,
     can_program_validate,
     can_tech_validate,
+    can_tech_verify,
 )
+
 from apps.eree.models import EREESession
 from apps.victims.models import Victim
 
@@ -99,28 +101,33 @@ def get_accident_or_404(user, pk, with_logs=False):
 def normalize_value(value):
     if value is None:
         return ""
+
     if hasattr(value, "pk"):
         return str(value.pk)
+
     if hasattr(value, "isoformat"):
         return value.isoformat()
+
     return str(value).strip()
 
 
 def display_value(value):
     if value is None or value == "":
         return "-"
+
     return str(value)
 
 
 def get_workflow_step_label(accident):
     status_map = {
-        Accident.STATUS_DRAFT: "Brouillon",
         Accident.STATUS_SUBMITTED: "Soumission",
+        Accident.STATUS_TECH_VERIFIED: "Vérification technique",
         Accident.STATUS_TECH_VALIDATED: "Validation technique",
         Accident.STATUS_PROGRAM_VALIDATED: "Validation programme",
         Accident.STATUS_RETURNED_FOR_CORRECTION: "Retourné pour correction",
         Accident.STATUS_APPROVED: "Approbation finale",
     }
+
     return status_map.get(accident.status, accident.get_status_display())
 
 
@@ -146,8 +153,8 @@ def accident_list(request):
         )
 
     allowed_statuses = {
-        Accident.STATUS_DRAFT,
         Accident.STATUS_SUBMITTED,
+        Accident.STATUS_TECH_VERIFIED,
         Accident.STATUS_TECH_VALIDATED,
         Accident.STATUS_PROGRAM_VALIDATED,
         Accident.STATUS_RETURNED_FOR_CORRECTION,
@@ -178,11 +185,21 @@ def accident_list(request):
         "selected_cercle": cercle_id,
         "selected_commune": commune_id,
         "count_all": base_queryset.count(),
-        "count_draft": base_queryset.filter(status=Accident.STATUS_DRAFT).count(),
-        "count_submitted": base_queryset.filter(status=Accident.STATUS_SUBMITTED).count(),
-        "count_tech": base_queryset.filter(status=Accident.STATUS_TECH_VALIDATED).count(),
-        "count_program": base_queryset.filter(status=Accident.STATUS_PROGRAM_VALIDATED).count(),
-        "count_approved": base_queryset.filter(status=Accident.STATUS_APPROVED).count(),
+        "count_submitted": base_queryset.filter(
+            status=Accident.STATUS_SUBMITTED
+        ).count(),
+        "count_tech_verified": base_queryset.filter(
+            status=Accident.STATUS_TECH_VERIFIED
+        ).count(),
+        "count_tech": base_queryset.filter(
+            status=Accident.STATUS_TECH_VALIDATED
+        ).count(),
+        "count_program": base_queryset.filter(
+            status=Accident.STATUS_PROGRAM_VALIDATED
+        ).count(),
+        "count_approved": base_queryset.filter(
+            status=Accident.STATUS_APPROVED
+        ).count(),
     }
 
     return render(request, "incidents/accident_list.html", context)
@@ -211,6 +228,7 @@ def accident_detail(request, pk):
         "victims_count": victims.count(),
         "kobo_victim_prefill_url": kobo_victim_prefill_url,
         "can_edit_accident": can_edit_accident(request.user),
+        "can_tech_verify": can_tech_verify(request.user),
         "can_tech_validate": can_tech_validate(request.user),
         "can_program_validate": can_program_validate(request.user),
         "can_approve": can_approve(request.user),
@@ -228,26 +246,42 @@ def accident_transition(request, pk, action):
             if not can_edit_accident(request.user):
                 raise ValidationError("Non autorisé.")
 
-            if accident.status != Accident.STATUS_DRAFT:
+            if accident.status != Accident.STATUS_RETURNED_FOR_CORRECTION:
                 raise ValidationError("Transition invalide.")
 
             accident.transition_to(
                 Accident.STATUS_SUBMITTED,
                 user=request.user,
+                comment="Accident corrigé et ressoumis.",
             )
+
             notify_accident_submitted(accident)
 
-        elif action == "tech_validate":
-            if not can_tech_validate(request.user):
+        elif action == "tech_verify":
+            if not can_tech_verify(request.user):
                 raise ValidationError("Non autorisé.")
 
             if accident.status != Accident.STATUS_SUBMITTED:
                 raise ValidationError("Transition invalide.")
 
             accident.transition_to(
+                Accident.STATUS_TECH_VERIFIED,
+                user=request.user,
+                comment="Vérification technique effectuée.",
+            )
+
+        elif action == "tech_validate":
+            if not can_tech_validate(request.user):
+                raise ValidationError("Non autorisé.")
+
+            if accident.status != Accident.STATUS_TECH_VERIFIED:
+                raise ValidationError("Transition invalide.")
+
+            accident.transition_to(
                 Accident.STATUS_TECH_VALIDATED,
                 user=request.user,
             )
+
             notify_accident_tech_validated(accident)
 
         elif action == "program_validate":
@@ -261,6 +295,7 @@ def accident_transition(request, pk, action):
                 Accident.STATUS_PROGRAM_VALIDATED,
                 user=request.user,
             )
+
             notify_accident_program_validated(accident)
 
         elif action == "approve":
@@ -274,6 +309,7 @@ def accident_transition(request, pk, action):
                 Accident.STATUS_APPROVED,
                 user=request.user,
             )
+
             notify_accident_approved(accident)
 
         else:
@@ -314,8 +350,17 @@ def accident_reject_or_return(request, pk, action):
                 )
 
             if action == "tech_reject":
-                if not can_tech_validate(request.user):
+                if not (
+                    can_tech_verify(request.user)
+                    or can_tech_validate(request.user)
+                ):
                     raise ValidationError("Action non autorisée.")
+
+                if accident.status not in [
+                    Accident.STATUS_SUBMITTED,
+                    Accident.STATUS_TECH_VERIFIED,
+                ]:
+                    raise ValidationError("Transition invalide.")
 
                 accident.transition_to(
                     Accident.STATUS_RETURNED_FOR_CORRECTION,
@@ -411,9 +456,11 @@ def accident_edit(request, pk):
             workflow_step_label = get_workflow_step_label(old_accident)
 
             old_values = {}
+
             for field_name in form.fields.keys():
                 if field_name == "comment":
                     continue
+
                 old_values[field_name] = getattr(old_accident, field_name, None)
 
             updated_accident = form.save(commit=False)
@@ -458,6 +505,7 @@ def accident_edit(request, pk):
             return redirect("accident_detail", pk=pk)
 
         messages.error(request, "Le formulaire contient des erreurs.")
+
     else:
         form = AccidentEditForm(instance=accident)
 
@@ -474,6 +522,16 @@ def accident_edit(request, pk):
 @login_required
 def accident_submit(request, pk):
     return accident_transition(request, pk, "submit")
+
+
+@login_required
+def accident_resubmit(request, pk):
+    return accident_transition(request, pk, "submit")
+
+
+@login_required
+def accident_tech_verify(request, pk):
+    return accident_transition(request, pk, "tech_verify")
 
 
 @login_required
@@ -508,10 +566,13 @@ def _accident_field_verbose_name(field):
 
         if base == "created_by":
             return "Créé par"
+
         if base == "tech_validated_by":
             return "Validé technique par"
+
         if base == "program_validated_by":
             return "Validé programme par"
+
         if base == "approved_by":
             return "Approuvé par"
 
@@ -625,8 +686,8 @@ def export_accidents_excel(request):
         )
 
     allowed_statuses = {
-        Accident.STATUS_DRAFT,
         Accident.STATUS_SUBMITTED,
+        Accident.STATUS_TECH_VERIFIED,
         Accident.STATUS_TECH_VALIDATED,
         Accident.STATUS_PROGRAM_VALIDATED,
         Accident.STATUS_RETURNED_FOR_CORRECTION,
@@ -678,6 +739,7 @@ def export_accidents_excel(request):
 
         for row in range(1, sheet.max_row + 1):
             value = sheet.cell(row=row, column=col).value
+
             if value:
                 max_length = max(max_length, len(str(value)))
 
@@ -688,9 +750,11 @@ def export_accidents_excel(request):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     )
+
     response["Content-Disposition"] = 'attachment; filename="accidents.xlsx"'
 
     workbook.save(response)
+
     return response
 
 
@@ -777,14 +841,25 @@ def accident_dashboard(request):
         for value in payload.values():
             if isinstance(value, dict):
                 found = find_in_payload(value, possible_keys)
+
                 if found:
                     return found
 
         return None
 
     month_order = [
-        "janvier", "février", "mars", "avril", "mai", "juin",
-        "juillet", "août", "septembre", "octobre", "novembre", "décembre"
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
     ]
 
     month_map = {
@@ -867,6 +942,7 @@ def accident_dashboard(request):
 
     for label, count in engine_counter.most_common():
         percent = round((count / total_accidents) * 100, 2) if total_accidents else 0
+
         engine_table.append(
             {
                 "label": label,
@@ -883,10 +959,6 @@ def accident_dashboard(request):
 
     cercle_labels = list(cercle_counter.keys())
     cercle_values = list(cercle_counter.values())
-
-        # =========================
-    # CARTE - VERSION CORRIGÉE AVEC FALLBACK
-    # =========================
 
     CERCLE_COORDS = {
         "Bamako": [12.6392, -8.0029],
@@ -921,12 +993,8 @@ def accident_dashboard(request):
         "Niono": [14.2500, -5.9833],
         "San": [13.3033, -4.8956],
         "Tominian": [13.2878, -3.6767],
-        "Mopti": [14.4843, -4.1820],
         "Almoustarat": [17.0500, -0.1500],
-        "Goundam": [16.4145, -3.6708],
         "Gourma-Rharous": [16.0833, -1.7667],
-        "Niafunké": [15.9322, -3.9906],
-
     }
 
     map_points = []
@@ -967,15 +1035,17 @@ def accident_dashboard(request):
             lat, lng = CERCLE_COORDS[accident.cercle.name]
 
         if lat is not None and lng is not None:
-            map_points.append({
-                "reference": accident.reference,
-                "cercle": accident.cercle.name if accident.cercle else "Sans cercle",
-                "commune": accident.commune.name if accident.commune else "",
-                "region": accident.region.name if accident.region else "",
-                "count": 1,
-                "lat": lat,
-                "lng": lng,
-            })
+            map_points.append(
+                {
+                    "reference": accident.reference,
+                    "cercle": accident.cercle.name if accident.cercle else "Sans cercle",
+                    "commune": accident.commune.name if accident.commune else "",
+                    "region": accident.region.name if accident.region else "",
+                    "count": 1,
+                    "lat": lat,
+                    "lng": lng,
+                }
+            )
 
     context = {
         "total_accidents": total_accidents,
@@ -1006,6 +1076,7 @@ def accident_dashboard(request):
 def rate(part, total):
     if not total:
         return 0
+
     return round((part / total) * 100, 1)
 
 
@@ -1017,7 +1088,7 @@ def export_accident_dashboard_pdf(request):
 
     accidents_approved = Accident.objects.filter(status="APPROVED").count()
     victims_approved = Victim.objects.filter(status="APPROVED").count()
-    eree_approved = EREESession.objects.filter(session_status="APPROVED").count()
+    eree_approved = EREESession.objects.filter(status="APPROVED").count()
 
     accidents_pending = accidents_count - accidents_approved
     victims_pending = victims_count - victims_approved
@@ -1063,7 +1134,7 @@ def export_accident_dashboard_pdf(request):
             .order_by("-total")
         ),
         "eree_by_status": (
-            EREESession.objects.values("session_status")
+            EREESession.objects.values("status")
             .annotate(total=Count("id"))
             .order_by("-total")
         ),
@@ -1111,8 +1182,10 @@ def export_accident_dashboard_pdf(request):
 def get_kobo_value(data, *keys):
     for key in keys:
         value = data.get(key)
+
         if value not in [None, ""]:
             return value
+
     return None
 
 
@@ -1121,10 +1194,12 @@ def parse_kobo_date(value):
         return None
 
     dt = parse_datetime(value)
+
     if dt:
         return dt.date()
 
     d = parse_date(value)
+
     if d:
         return d
 
@@ -1133,7 +1208,6 @@ def parse_kobo_date(value):
 
 @csrf_exempt
 def kobo_accident_webhook(request):
-
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
 
@@ -1310,7 +1384,11 @@ def kobo_accident_webhook(request):
                 submitter_last_name = created_by_user.last_name
                 submitter_email = created_by_user.email
                 submitter_phone = getattr(created_by_user, "phone", None)
-                submitter_organization = getattr(created_by_user, "organization", None)
+                submitter_organization = getattr(
+                    created_by_user,
+                    "organization",
+                    None,
+                )
                 submitter_role = getattr(created_by_user, "role", None)
 
         accident, created = Accident.objects.update_or_create(
@@ -1318,59 +1396,48 @@ def kobo_accident_webhook(request):
             defaults={
                 "reference": reference,
                 "title": title,
-
                 "accident_date": accident_date,
-
                 "accident_time": get_kobo_value(
                     data,
                     "accident_details/accident_time",
                     "accident_time",
                 ),
-
                 "category": category,
-
                 "number_victims": get_kobo_value(
                     data,
                     "accident_details/number_victims",
                     "number_victims",
                 ),
-
                 "other_damage": get_kobo_value(
                     data,
                     "accident_details/other_damage",
                     "other_damage",
                 ),
-
                 "activity_at_time": get_kobo_value(
                     data,
                     "accident_details/activity_at_time",
                     "activity_at_time",
                 ),
-
                 "description": get_kobo_value(
                     data,
                     "accident_details/description",
                     "description",
                 ),
-
                 "device_type": get_kobo_value(
                     data,
                     "accident_details/device_type",
                     "device_type",
                 ),
-
                 "device_status": get_kobo_value(
                     data,
                     "accident_details/device_status",
                     "device_status",
                 ),
-
                 "device_marked": get_kobo_value(
                     data,
                     "accident_details/device_marked",
                     "device_marked",
                 ),
-
                 "report_date": parse_kobo_date(
                     get_kobo_value(
                         data,
@@ -1382,27 +1449,22 @@ def kobo_accident_webhook(request):
                         "date_rapport",
                     )
                 ),
-
                 "org_name": org_name,
-
                 "reported_by": get_kobo_value(
                     data,
                     "reporting/reported_by",
                     "reported_by",
                 ),
-
                 "team": get_kobo_value(
                     data,
                     "reporting/team",
                     "team",
                 ),
-
                 "funding_source": get_kobo_value(
                     data,
                     "reporting/funding_source",
                     "funding_source",
                 ),
-
                 "country": get_kobo_value(
                     data,
                     "location/country",
@@ -1410,11 +1472,9 @@ def kobo_accident_webhook(request):
                     "country",
                     "pays",
                 ),
-
                 "region": region_obj,
                 "cercle": cercle_obj,
                 "commune": commune_obj,
-
                 "locality": get_kobo_value(
                     data,
                     "location/locality",
@@ -1423,52 +1483,43 @@ def kobo_accident_webhook(request):
                     "locality",
                     "village",
                 ),
-
                 "latitude": latitude,
                 "longitude": longitude,
-
                 "secure_access": get_kobo_value(
                     data,
                     "location/secure_access",
                     "secure_access",
                 ),
-
                 "source_first_name": get_kobo_value(
                     data,
                     "source_details/source_first_name",
                     "source_first_name",
                 ),
-
                 "source_last_name": get_kobo_value(
                     data,
                     "source_details/source_last_name",
                     "source_last_name",
                 ),
-
                 "source_contact": get_kobo_value(
                     data,
                     "source_details/source_contact",
                     "source_contact",
                 ),
-
                 "source_gender": get_kobo_value(
                     data,
                     "source_details/source_gender",
                     "source_gender",
                 ),
-
                 "source_age": get_kobo_value(
                     data,
                     "source_details/source_age",
                     "source_age",
                 ),
-
                 "source_type": get_kobo_value(
                     data,
                     "source_details/source_type",
                     "source_type",
                 ),
-
                 "submitter_username": submitted_by,
                 "submitter_first_name": submitter_first_name,
                 "submitter_last_name": submitter_last_name,
@@ -1476,13 +1527,10 @@ def kobo_accident_webhook(request):
                 "submitter_phone": submitter_phone,
                 "submitter_organization": submitter_organization,
                 "submitter_role": submitter_role,
-
                 "created_by": created_by_user,
-
                 "source": Accident.SOURCE_KOBO,
                 "raw_payload": data,
                 "status": Accident.STATUS_SUBMITTED,
-
                 "submitted_at_kobo": (
                     parse_datetime(data.get("end"))
                     if data.get("end")
@@ -1490,14 +1538,13 @@ def kobo_accident_webhook(request):
                 ),
             },
         )
-        
-        if accident.status == Accident.STATUS_DRAFT:
+
+        if not accident.status:
             accident.status = Accident.STATUS_SUBMITTED
-            accident.save()
+            accident.save(update_fields=["status"])
 
         if created:
-           notify_accident_submitted(accident)
-
+            notify_accident_submitted(accident)
 
         return JsonResponse(
             {
@@ -1512,26 +1559,3 @@ def kobo_accident_webhook(request):
     except Exception as e:
         print("WEBHOOK ERROR:", str(e))
         return JsonResponse({"error": str(e)}, status=500)
-    
-@login_required
-def accident_resubmit(request, pk):
-    accident = get_accident_or_404(pk)
-
-    if request.user != accident.created_by and not request.user.is_superuser:
-        messages.error(request, "Non autorisé.")
-        return redirect("accident_detail", pk=pk)
-
-    if accident.status != Accident.STATUS_RETURNED_FOR_CORRECTION:
-        messages.error(request, "Cet accident ne peut pas être ressoumis.")
-        return redirect("accident_detail", pk=pk)
-
-    accident.transition_to(
-        Accident.STATUS_SUBMITTED,
-        user=request.user,
-        comment="Accident corrigé et ressoumis.",
-    )
-
-    notify_accident_submitted(accident)
-
-    messages.success(request, "L'accident a été ressoumis avec succès.")
-    return redirect("accident_detail", pk=pk)

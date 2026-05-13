@@ -103,19 +103,27 @@
         <div class="text-end">
           <div class="workflow-label">
             <strong>Statut :
-              {% if accident.status == "DRAFT" %}
-                Brouillon
-              {% elif accident.status == "SUBMITTED" %}
-                Soumis
-              {% elif accident.status == "TECH_VALIDATED" %}
-                Validation technique
-              {% elif accident.status == "PROGRAM_VALIDATED" %}
-                Validation programme
-              {% elif accident.status == "APPROVED" %}
-                Approuvé
-              {% else %}
-                {{ accident.get_status_display|default:accident.status }}
-              {% endif %}
+              {% if accident.status == "SUBMITTED" %}
+    Soumis
+
+{% elif accident.status == "TECH_VERIFIED" %}
+    Vérification technique
+
+{% elif accident.status == "TECH_VALIDATED" %}
+    Validation technique
+
+{% elif accident.status == "PROGRAM_VALIDATED" %}
+    Validation programme
+
+{% elif accident.status == "APPROVED" %}
+    Approuvé
+
+{% elif accident.status == "RETURNED_FOR_CORRECTION" %}
+    Retourné pour correction
+
+{% else %}
+    {{ accident.get_status_display|default:accident.status }}
+{% endif %}
             </strong>
           </div>
         </div>
@@ -180,29 +188,100 @@
         </div>
       {% endif %}
 
-      <div class="action-bar">
+  <div class="action-bar">
 
-  {# SUPERVISEUR : statut Soumis #}
-  {% if can_tech_validate and accident.status == "SUBMITTED" %}
-    <a href="{% url 'accident_transition' accident.pk 'tech_validate' %}" class="btn btn-success btn-sm">
-      Valider techniquement
+  {# ========================= #}
+  {# VERIFICATION TECHNIQUE #}
+  {# ========================= #}
+
+  {% if can_tech_verify and accident.status == "SUBMITTED" %}
+
+    <a href="{% url 'accident_transition' accident.pk 'tech_verify' %}"
+       class="btn btn-info btn-sm">
+
+      Vérification technique
+
     </a>
 
-    <a href="{% url 'accident_workflow_form' accident.pk 'tech_reject' %}" class="btn btn-warning btn-sm">
+    <a href="{% url 'accident_workflow_form' accident.pk 'tech_reject' %}"
+       class="btn btn-warning btn-sm">
+
       Retour au soumissionnaire
+
     </a>
+
   {% endif %}
 
-  {# PROGRAMME MANAGER : statut Validation technique #}
+
+  {# ========================= #}
+  {# VALIDATION TECHNIQUE #}
+  {# ========================= #}
+
+  {% if can_tech_validate and accident.status == "TECH_VERIFIED" %}
+
+    <a href="{% url 'accident_transition' accident.pk 'tech_validate' %}"
+       class="btn btn-success btn-sm">
+
+      Validation technique
+
+    </a>
+
+    <a href="{% url 'accident_workflow_form' accident.pk 'tech_reject' %}"
+       class="btn btn-warning btn-sm">
+
+      Retour au soumissionnaire
+
+    </a>
+
+  {% endif %}
+
+
+  {# ========================= #}
+  {# VALIDATION PROGRAMME #}
+  {# ========================= #}
+
   {% if can_program_validate and accident.status == "TECH_VALIDATED" %}
-    <a href="{% url 'accident_transition' accident.pk 'program_validate' %}" class="btn btn-primary btn-sm">
-      Valider programme
+
+    <a href="{% url 'accident_transition' accident.pk 'program_validate' %}"
+       class="btn btn-primary btn-sm">
+
+      Validation programme
+
     </a>
 
-    <a href="{% url 'accident_workflow_form' accident.pk 'program_reject' %}" class="btn btn-warning btn-sm">
-      Retour à la validation technique
+    <a href="{% url 'accident_workflow_form' accident.pk 'program_reject' %}"
+       class="btn btn-warning btn-sm">
+
+      Retour validation technique
+
     </a>
+
   {% endif %}
+
+
+  {# ========================= #}
+  {# APPROBATION FINALE #}
+  {# ========================= #}
+
+  {% if can_approve and accident.status == "PROGRAM_VALIDATED" %}
+
+    <a href="{% url 'accident_transition' accident.pk 'approve' %}"
+       class="btn btn-dark btn-sm">
+
+      Approuver final
+
+    </a>
+
+    <a href="{% url 'accident_workflow_form' accident.pk 'program_reject' %}"
+       class="btn btn-danger btn-sm">
+
+      Retour validation programme
+
+    </a>
+
+  {% endif %}
+
+</div>
 
   {# DATABASE ADMIN : statut Validation programme #}
   {% if can_approve and accident.status == "PROGRAM_VALIDATED" %}
@@ -366,6 +445,11 @@
     <div class="card-body info-grid">
       <h5>Workflow de validation</h5>
       <p><strong>Soumis le :</strong> {{ accident.submitted_at|date:"d/m/Y H:i"|default:"-" }}</p>
+      <p><strong>Vérifié techniquement le :</strong>
+{{ accident.tech_verified_at|date:"d/m/Y H:i"|default:"-" }}</p>
+
+<p><strong>Vérifié techniquement par :</strong>
+{{ accident.tech_verified_by|default:"-" }}</p>
       <p><strong>Validé techniquement le :</strong> {{ accident.tech_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
       <p><strong>Validé programme le :</strong> {{ accident.program_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
       <p><strong>Approuvé le :</strong> {{ accident.approved_at|date:"d/m/Y H:i"|default:"-" }}</p>

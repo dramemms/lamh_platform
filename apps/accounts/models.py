@@ -13,6 +13,7 @@ class User(AbstractUser):
     ROLE_SUPERVISOR = "SUPERVISOR"
     ROLE_PROJECT_MANAGER = "PROJECT_MANAGER"
     ROLE_TECH_VALIDATOR = "TECH_VALIDATOR"
+    ROLE_TECH_VERIFIER = "TECH_VERIFIER"
     ROLE_DATA_ENTRY = "DATA_ENTRY"
     ROLE_VIEWER = "VIEWER"
 
@@ -21,6 +22,7 @@ class User(AbstractUser):
         (ROLE_SUPERVISOR, "Superviseur"),
         (ROLE_PROJECT_MANAGER, "Project Manager"),
         (ROLE_TECH_VALIDATOR, "Validateur technique"),
+        (ROLE_TECH_VERIFIER,"Verification technique"),
         (ROLE_DATA_ENTRY, "Agent de saisie"),
         (ROLE_VIEWER, "Lecteur"),
     ]

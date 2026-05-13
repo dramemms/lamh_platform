@@ -63,10 +63,34 @@ urlpatterns = [
     ),
 
     path(
+        "<int:pk>/resubmit/",
+        views.accident_resubmit,
+        name="accident_resubmit"
+    ),
+
+    # =========================
+    # VERIFICATION TECHNIQUE
+    # =========================
+
+    path(
+        "<int:pk>/tech-verify/",
+        views.accident_tech_verify,
+        name="accident_tech_verify"
+    ),
+
+    # =========================
+    # VALIDATION TECHNIQUE
+    # =========================
+
+    path(
         "<int:pk>/tech-validate/",
         views.accident_tech_validate,
         name="accident_tech_validate"
     ),
+
+    # =========================
+    # VALIDATION PROGRAMME
+    # =========================
 
     path(
         "<int:pk>/program-validate/",
@@ -74,11 +98,19 @@ urlpatterns = [
         name="accident_program_validate"
     ),
 
+    # =========================
+    # APPROBATION FINALE
+    # =========================
+
     path(
         "<int:pk>/approve/",
         views.accident_approve,
         name="accident_approve"
     ),
+
+    # =========================
+    # RETOUR / REJET
+    # =========================
 
     path(
         "<int:pk>/tech-reject/",
@@ -117,7 +149,5 @@ urlpatterns = [
         views.kobo_accident_webhook,
         name="kobo_accident_webhook",
     ),
-
-    path("detail/<int:pk>/resubmit/", views.accident_resubmit, name="accident_resubmit",),
 
 ]
