@@ -3,7 +3,8 @@ from django.core.mail import send_mail
 from django.urls import reverse
 
 from .recipients import (
-    get_tech_emails,
+    get_tech_verifier_emails,
+    get_tech_validator_emails,
     get_program_emails,
     get_admin_emails,
 )
@@ -37,7 +38,7 @@ def send_notification(subject, message, recipients):
 # =============================
 
 def notify_accident_submitted(accident):
-    recipients = get_tech_emails()
+    recipients = get_tech_verifier_emails()
 
     if getattr(accident, "submitter_email", None):
         recipients.append(accident.submitter_email)
@@ -47,7 +48,7 @@ def notify_accident_submitted(accident):
     message = f"""
 Bonjour,
 
-Un nouveau rapport d'accident a été soumis et attend une validation technique.
+Un nouveau rapport d'accident a été soumis et attend une vérification technique.
 
 Référence : {accident.reference or "-"}
 Titre : {getattr(accident, "title", None) or "-"}
@@ -62,7 +63,32 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification("Nouvel accident à valider", message, recipients)
+    send_notification("Nouvel accident à vérifier", message, recipients)
+
+
+def notify_accident_tech_verified(accident):
+    recipients = get_tech_validator_emails()
+    url = build_url(reverse("accident_detail", args=[accident.pk]))
+
+    message = f"""
+Bonjour,
+
+Un rapport d'accident a été vérifié techniquement et attend une validation technique.
+
+Référence : {accident.reference or "-"}
+Titre : {getattr(accident, "title", None) or "-"}
+Organisation : {getattr(accident, "org_name", None) or "-"}
+Date accident : {getattr(accident, "accident_date", None) or "-"}
+Localité : {getattr(accident, "locality", None) or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Accident vérifié techniquement", message, recipients)
 
 
 def notify_accident_tech_validated(accident):
@@ -120,10 +146,10 @@ def notify_accident_returned(accident):
 
     if accident.status == "RETURNED_FOR_CORRECTION":
         destination = "au soumissionnaire pour correction"
-        recipients = get_tech_emails()
+        recipients = get_tech_verifier_emails()
     elif accident.status == "TECH_VALIDATED":
         destination = "à la validation technique"
-        recipients = get_program_emails()
+        recipients = get_tech_validator_emails()
     else:
         destination = "dans le workflow"
         recipients = get_admin_emails()
@@ -147,11 +173,8 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification(
-        f"Accident retourné {destination}",
-        message,
-        recipients,
-    )
+    send_notification(f"Accident retourné {destination}", message, recipients)
+
 
 def notify_accident_approved(accident):
     recipients = []
@@ -190,7 +213,7 @@ LAMH Plateforme
 # =============================
 
 def notify_victim_submitted(victim):
-    recipients = get_tech_emails()
+    recipients = get_tech_verifier_emails()
 
     if getattr(victim, "submitter_email", None):
         recipients.append(victim.submitter_email)
@@ -200,7 +223,7 @@ def notify_victim_submitted(victim):
     message = f"""
 Bonjour,
 
-Une nouvelle fiche victime a été soumise et attend une validation technique.
+Une nouvelle fiche victime a été soumise et attend une vérification technique.
 
 ID victime : {victim.victim_id or "-"}
 Accident : {victim.accident_reference or "-"}
@@ -214,7 +237,31 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification("Nouvelle victime à valider", message, recipients)
+    send_notification("Nouvelle victime à vérifier", message, recipients)
+
+
+def notify_victim_tech_verified(victim):
+    recipients = get_tech_validator_emails()
+    url = build_url(reverse("victim_detail", args=[victim.pk]))
+
+    message = f"""
+Bonjour,
+
+Une fiche victime a été vérifiée techniquement et attend une validation technique.
+
+ID victime : {victim.victim_id or "-"}
+Accident : {victim.accident_reference or "-"}
+Nom : {victim.victim_last_name or "-"} {victim.victim_first_name or "-"}
+Organisation : {victim.reporting_org or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("Victime vérifiée techniquement", message, recipients)
 
 
 def notify_victim_tech_validated(victim):
@@ -269,7 +316,7 @@ def notify_victim_returned(victim):
     url = build_url(reverse("victim_detail", args=[victim.pk]))
 
     destination = "au soumissionnaire"
-    recipients = get_tech_emails()
+    recipients = get_tech_verifier_emails()
 
     message = f"""
 Bonjour,
@@ -291,11 +338,7 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification(
-        "Victime retournée au soumissionnaire",
-        message,
-        recipients,
-    )
+    send_notification("Fiche victime retournée au soumissionnaire", message, recipients)
 
 
 def notify_victim_approved(victim):
@@ -334,7 +377,7 @@ LAMH Plateforme
 # =============================
 
 def notify_eree_submitted(eree):
-    recipients = get_tech_emails()
+    recipients = get_tech_verifier_emails()
 
     if getattr(eree, "submitter_email", None):
         recipients.append(eree.submitter_email)
@@ -348,7 +391,7 @@ def notify_eree_submitted(eree):
     message = f"""
 Bonjour,
 
-Une session EREE a été soumise et attend une validation technique.
+Une session EREE a été soumise et attend une vérification technique.
 
 Référence : {eree.reference or "-"}
 Titre : {eree.title or "-"}
@@ -361,7 +404,30 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification("Nouvelle session EREE à valider", message, recipients)
+    send_notification("Nouvelle session EREE à vérifier", message, recipients)
+
+
+def notify_eree_tech_verified(eree):
+    recipients = get_tech_validator_emails()
+    url = build_url(reverse("eree_detail", args=[eree.pk]))
+
+    message = f"""
+Bonjour,
+
+Une session EREE a été vérifiée techniquement et attend une validation technique.
+
+Référence : {eree.reference or "-"}
+Titre : {eree.title or "-"}
+Organisation : {eree.organisation or "-"}
+
+Lien :
+{url}
+
+Cordialement,
+LAMH Plateforme
+"""
+
+    send_notification("EREE vérifiée techniquement", message, recipients)
 
 
 def notify_eree_tech_validated(eree):
@@ -413,12 +479,14 @@ LAMH Plateforme
 def notify_eree_returned(eree):
     url = build_url(reverse("eree_detail", args=[eree.pk]))
 
-    if eree.session_status == "SUBMITTED":
+    status = getattr(eree, "status", "")
+
+    if status == "RETURNED_FOR_CORRECTION":
         destination = "au soumissionnaire"
-        recipients = get_tech_emails()
-    elif eree.session_status == "TECH_VALIDATED":
+        recipients = get_tech_verifier_emails()
+    elif status == "TECH_VALIDATED":
         destination = "à la validation technique"
-        recipients = get_program_emails()
+        recipients = get_tech_validator_emails()
     else:
         destination = "dans le workflow"
         recipients = get_admin_emails()
@@ -442,15 +510,16 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification(
-        f"EREE retournée {destination}",
-        message,
-        recipients,
-    )
+    send_notification(f"EREE retournée {destination}", message, recipients)
 
 
 def notify_eree_approved(eree):
     recipients = get_admin_emails()
+
+    submitted_by_email = getattr(eree, "reported_by", None)
+    if submitted_by_email and "@" in submitted_by_email:
+        recipients.append(submitted_by_email)
+
     url = build_url(reverse("eree_detail", args=[eree.pk]))
 
     message = f"""
