@@ -15,8 +15,33 @@ def build_url(path):
     return f"{base_url}{path}"
 
 
+def unique_emails(emails):
+    return list(dict.fromkeys([email for email in (emails or []) if email]))
+
+
+def get_submitter_recipients(obj):
+    recipients = []
+
+    if getattr(obj, "submitter_email", None):
+        recipients.append(obj.submitter_email)
+
+    submitted_by = getattr(obj, "submitted_by", None)
+    if submitted_by and getattr(submitted_by, "email", None):
+        recipients.append(submitted_by.email)
+
+    created_by = getattr(obj, "created_by", None)
+    if created_by and getattr(created_by, "email", None):
+        recipients.append(created_by.email)
+
+    reported_by = getattr(obj, "reported_by", None)
+    if reported_by and isinstance(reported_by, str) and "@" in reported_by:
+        recipients.append(reported_by)
+
+    return unique_emails(recipients)
+
+
 def send_notification(subject, message, recipients):
-    recipients = list(set([email for email in (recipients or []) if email]))
+    recipients = unique_emails(recipients)
 
     print("DEBUG SEND MAIL:", subject, recipients)
 
@@ -39,10 +64,6 @@ def send_notification(subject, message, recipients):
 
 def notify_accident_submitted(accident):
     recipients = get_tech_verifier_emails()
-
-    if getattr(accident, "submitter_email", None):
-        recipients.append(accident.submitter_email)
-
     url = build_url(reverse("accident_detail", args=[accident.pk]))
 
     message = f"""
@@ -142,22 +163,13 @@ LAMH Plateforme
 
 
 def notify_accident_returned(accident):
+    recipients = get_submitter_recipients(accident)
     url = build_url(reverse("accident_detail", args=[accident.pk]))
-
-    if accident.status == "RETURNED_FOR_CORRECTION":
-        destination = "au soumissionnaire pour correction"
-        recipients = get_tech_verifier_emails()
-    elif accident.status == "TECH_VALIDATED":
-        destination = "à la validation technique"
-        recipients = get_tech_validator_emails()
-    else:
-        destination = "dans le workflow"
-        recipients = get_admin_emails()
 
     message = f"""
 Bonjour,
 
-Un rapport d'accident a été retourné {destination}.
+Votre rapport d'accident a été retourné pour correction.
 
 Référence : {accident.reference or "-"}
 Titre : {getattr(accident, "title", None) or "-"}
@@ -173,24 +185,17 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification(f"Accident retourné {destination}", message, recipients)
+    send_notification("Accident retourné pour correction", message, recipients)
 
 
 def notify_accident_approved(accident):
-    recipients = []
-
-    if getattr(accident, "submitter_email", None):
-        recipients.append(accident.submitter_email)
-
-    recipients += get_program_emails()
-    recipients += get_admin_emails()
-
+    recipients = get_submitter_recipients(accident)
     url = build_url(reverse("accident_detail", args=[accident.pk]))
 
     message = f"""
 Bonjour,
 
-Un rapport d'accident a été approuvé définitivement.
+Votre rapport d'accident a été approuvé définitivement.
 
 Référence : {accident.reference or "-"}
 Titre : {getattr(accident, "title", None) or "-"}
@@ -214,10 +219,6 @@ LAMH Plateforme
 
 def notify_victim_submitted(victim):
     recipients = get_tech_verifier_emails()
-
-    if getattr(victim, "submitter_email", None):
-        recipients.append(victim.submitter_email)
-
     url = build_url(reverse("victim_detail", args=[victim.pk]))
 
     message = f"""
@@ -313,15 +314,13 @@ LAMH Plateforme
 
 
 def notify_victim_returned(victim):
+    recipients = get_submitter_recipients(victim)
     url = build_url(reverse("victim_detail", args=[victim.pk]))
-
-    destination = "au soumissionnaire"
-    recipients = get_tech_verifier_emails()
 
     message = f"""
 Bonjour,
 
-Une fiche victime a été retournée au soumissionnaire.
+Votre fiche victime a été retournée pour correction.
 
 ID victime : {victim.victim_id or "-"}
 Accident : {victim.accident_reference or "-"}
@@ -338,24 +337,17 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification("Fiche victime retournée au soumissionnaire", message, recipients)
+    send_notification("Fiche victime retournée pour correction", message, recipients)
 
 
 def notify_victim_approved(victim):
-    recipients = []
-
-    if getattr(victim, "submitter_email", None):
-        recipients.append(victim.submitter_email)
-
-    recipients += get_program_emails()
-    recipients += get_admin_emails()
-
+    recipients = get_submitter_recipients(victim)
     url = build_url(reverse("victim_detail", args=[victim.pk]))
 
     message = f"""
 Bonjour,
 
-Une fiche victime a été approuvée définitivement.
+Votre fiche victime a été approuvée définitivement.
 
 ID victime : {victim.victim_id or "-"}
 Accident : {victim.accident_reference or "-"}
@@ -378,14 +370,6 @@ LAMH Plateforme
 
 def notify_eree_submitted(eree):
     recipients = get_tech_verifier_emails()
-
-    if getattr(eree, "submitter_email", None):
-        recipients.append(eree.submitter_email)
-
-    submitted_by_email = getattr(eree, "reported_by", None)
-    if submitted_by_email and "@" in submitted_by_email:
-        recipients.append(submitted_by_email)
-
     url = build_url(reverse("eree_detail", args=[eree.pk]))
 
     message = f"""
@@ -477,24 +461,13 @@ LAMH Plateforme
 
 
 def notify_eree_returned(eree):
+    recipients = get_submitter_recipients(eree)
     url = build_url(reverse("eree_detail", args=[eree.pk]))
-
-    status = getattr(eree, "status", "")
-
-    if status == "RETURNED_FOR_CORRECTION":
-        destination = "au soumissionnaire"
-        recipients = get_tech_verifier_emails()
-    elif status == "TECH_VALIDATED":
-        destination = "à la validation technique"
-        recipients = get_tech_validator_emails()
-    else:
-        destination = "dans le workflow"
-        recipients = get_admin_emails()
 
     message = f"""
 Bonjour,
 
-Une session EREE a été retournée {destination}.
+Votre session EREE a été retournée pour correction.
 
 Référence : {eree.reference or "-"}
 Titre : {eree.title or "-"}
@@ -510,22 +483,17 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification(f"EREE retournée {destination}", message, recipients)
+    send_notification("EREE retournée pour correction", message, recipients)
 
 
 def notify_eree_approved(eree):
-    recipients = get_admin_emails()
-
-    submitted_by_email = getattr(eree, "reported_by", None)
-    if submitted_by_email and "@" in submitted_by_email:
-        recipients.append(submitted_by_email)
-
+    recipients = get_submitter_recipients(eree)
     url = build_url(reverse("eree_detail", args=[eree.pk]))
 
     message = f"""
 Bonjour,
 
-Une session EREE a été approuvée définitivement.
+Votre session EREE a été approuvée définitivement.
 
 Référence : {eree.reference or "-"}
 Titre : {eree.title or "-"}
@@ -538,4 +506,4 @@ Cordialement,
 LAMH Plateforme
 """
 
-    send_notification("EREE approuvée", message, recipients)
+    send_notification("EREE approuvée définitivement", message, recipients)
