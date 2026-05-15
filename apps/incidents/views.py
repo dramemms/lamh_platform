@@ -1204,7 +1204,40 @@ def parse_kobo_date(value):
         return d
 
     return None
+ACCIDENT_VALUE_LABELS = {
 
+    # ACTIVITE
+    "Aid-work": "Travail humanitaire",
+    "Farming": "Agriculture",
+    "Herding": "Élevage",
+    "Travelling": "Déplacement",
+    "Playing": "Jeu",
+
+    # TYPE ACCIDENT
+    "REG": "REG",
+    "IED": "EEI",
+    "Mine": "Mine",
+
+    # TYPE ENGIN
+    "AV landmines": "Mine antivéhicule",
+    "AP landmines": "Mine antipersonnel",
+    "UXO": "Munition non explosée",
+
+    # STATUT ENGIN
+    "Unknown": "Inconnu",
+    "Active": "Actif",
+    "Destroyed": "Détruit",
+
+    # AUTRES DOMMAGES
+    "House Livestock Fields": "Maison / bétail / champs",
+}
+
+
+def translate_accident_value(value):
+    if not value:
+        return value
+
+    return ACCIDENT_VALUE_LABELS.get(value, value)
 
 @csrf_exempt
 def kobo_accident_webhook(request):
@@ -1408,31 +1441,39 @@ def kobo_accident_webhook(request):
                     "accident_details/number_victims",
                     "number_victims",
                 ),
-                "other_damage": get_kobo_value(
-                    data,
-                    "accident_details/other_damage",
-                    "other_damage",
-                ),
-                "activity_at_time": get_kobo_value(
-                    data,
-                    "accident_details/activity_at_time",
-                    "activity_at_time",
-                ),
+                "other_damage": translate_accident_value(
+    get_kobo_value(
+        data,
+        "accident_details/other_damage",
+        "other_damage",
+    )
+),
+                "activity_at_time": translate_accident_value(
+    get_kobo_value(
+        data,
+        "accident_details/activity_at_time",
+        "activity_at_time",
+    )
+),
                 "description": get_kobo_value(
                     data,
                     "accident_details/description",
                     "description",
                 ),
-                "device_type": get_kobo_value(
-                    data,
-                    "accident_details/device_type",
-                    "device_type",
-                ),
-                "device_status": get_kobo_value(
-                    data,
-                    "accident_details/device_status",
-                    "device_status",
-                ),
+                "device_type": translate_accident_value(
+    get_kobo_value(
+        data,
+        "accident_details/device_type",
+        "device_type",
+    )
+),
+               "device_status": translate_accident_value(
+    get_kobo_value(
+        data,
+        "accident_details/device_status",
+        "device_status",
+    )
+),
                 "device_marked": get_kobo_value(
                     data,
                     "accident_details/device_marked",
