@@ -46,6 +46,14 @@ def _parse_datetime(v):
     except Exception:
         return None
 
+def safe_parse_date(value):
+    if not value:
+        return None
+
+    try:
+        return parse_date(str(value))
+    except Exception:
+        return None
 
 def _normalize(v):
     return str(v or "").strip()
@@ -210,23 +218,46 @@ def kobo_eree_webhook(request):
             },
             status=400,
         )
+    
+    # =========================
+    # DATE SESSION
+    # =========================
 
-    session_date = parse_date(
-        data.get("g_session/session_date") or data.get("session_date")
+    session_date = safe_parse_date(
+        data.get("g_session/session_date")
+        or data.get("session_date")
     )
 
     if not session_date:
         return JsonResponse(
             {
                 "error": "invalid date",
-                "value": data.get("g_session/session_date") or data.get("session_date"),
+                "value": (
+                    data.get("g_session/session_date")
+                    or data.get("session_date")
+                ),
             },
             status=400,
         )
 
-    week_from = parse_date(data.get("g_weekly/week_from"))
-    week_to = parse_date(data.get("g_weekly/week_to"))
-    quality_date = parse_date(data.get("g_quality/quality_date"))
+    # =========================
+    # CHAMPS HEBDOMADAIRES
+    # (optionnels maintenant)
+    # =========================
+
+    week_from = safe_parse_date(
+        data.get("g_weekly/week_from")
+    )
+
+    week_to = safe_parse_date(
+        data.get("g_weekly/week_to")
+    )
+
+    quality_date = safe_parse_date(
+        data.get("g_quality/quality_date")
+    )
+
+
 
     organisation = data.get("g_weekly/organisation") or "Sans organisation"
 
@@ -373,9 +404,7 @@ def kobo_eree_webhook(request):
         },
     )
 
-    if created:
-       notify_eree_submitted(obj)
-
+    
     if obj.status == EREESession.STATUS_DRAFT:
         obj.status = EREESession.STATUS_SUBMITTED
         obj.submitted_at = obj.submitted_at_kobo
