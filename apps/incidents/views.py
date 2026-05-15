@@ -1206,7 +1206,71 @@ def parse_kobo_date(value):
     return None
 ACCIDENT_VALUE_LABELS = {
 
+    # ORGANISATION
+    "hi": "HI",
+    "gaas_mali": "GAAS-MALI",
+    "avenir": "AVENIR",
+    "autre": "Autre",
+
+    # FINANCEMENT
+    "European Union": "Union Européenne",
+    "Government of Australia": "Gouvernement Australien",
+    "Government of Canada": "Gouvernement Canadien",
+    "Government of Czech Republic": "Gouvernement Tchèque",
+    "Government of Denmark": "Gouvernement Danois",
+    "Government of Netherlands": "Gouvernement Néerlandais",
+    "Government of Finland": "Gouvernement Finlandais",
+    "Government of Italy": "Gouvernement Italien",
+    "Government of Germany": "Gouvernement Allemand",
+    "Government of Japan": "Gouvernement Japonais",
+    "Government of Luxembourg": "Gouvernement Luxembourgeois",
+    "Government of Norway": "Gouvernement Norvégien",
+    "Government of Belgium": "Gouvernement Belge",
+    "Government of France": "Gouvernement Français",
+    "Government of Sweden (SIDA)": "Gouvernement Suédois (SIDA)",
+    "Government of Switzerland": "Gouvernement Suisse",
+    "Government of UK (DFID)": "Gouvernement Britannique (DFID)",
+    "Government of USA (USAID)": "Gouvernement des États-Unis (USAID)",
+    "United Nations": "Nations Unies",
+    "swiss_cooperation": "Coopération Suisse",
+    "other_1": "Autre",
+
+    # TYPE ZONE
+    "At home": "À la maison",
+    "Residential area": "Zone résidentielle",
+    "Road": "Route goudronnée",
+    "Path": "Route non goudronnée",
+    "Forest": "Forêt",
+    "Military installation": "Installation militaire",
+    "River bank": "Rive",
+    "Pasture": "Pâturage",
+    "Fields": "Terrains",
+    "School": "École",
+    "Health Centres": "Centre de santé",
+    "Markets": "Marché",
+    "Administrative Buildings": "Immeuble administratif",
+    "Bridges": "Pont",
+    "Recreation": "Loisir",
+    "Unknown": "Inconnu",
+    "Other": "Autre",
+
+    # AUTRES DOMMAGES
+    "House": "Maison",
+    "Structure": "Structure",
+    "Vehicule": "Véhicule",
+    "Livestock": "Grenier",
+    "Animals": "Bétail",
+    "Health_Centre": "Centre de santé",
+    "Pastures": "Pâturage",
+    "Autres": "Pas de dommage",
+    "Autre_1": "Autre",
+    "House Livestock Fields": "Maison / bétail / champs",
+    "House Vehicle Livestock": "Maison / véhicule / bétail",
+
     # ACTIVITE
+    "Civilian activity": "Activité civile",
+    "Demining activity": "Activité de déminage",
+    "Military/Law Enforcement activity": "Activité militaire / forces de l’ordre",
     "Aid-work": "Travail humanitaire",
     "Farming": "Agriculture",
     "Herding": "Élevage",
@@ -1215,29 +1279,80 @@ ACCIDENT_VALUE_LABELS = {
 
     # TYPE ACCIDENT
     "REG": "REG",
+    "EEI": "EEI",
     "IED": "EEI",
     "Mine": "Mine",
+    "ALPC": "ALPC",
 
     # TYPE ENGIN
+    "AP landmines": "Mine antipersonnelle",
     "AV landmines": "Mine antivéhicule",
-    "AP landmines": "Mine antipersonnel",
+    "Unknown (mine)": "Inconnu",
+    "Grenade": "Grenade",
+    "Mortar round": "Obus de mortier",
+    "Bomb": "Bombe",
+    "Small arms ammunition": "Munition ALPC",
+    "Projectile": "Projectile / obus d’artillerie",
+    "Cluster munition": "Armes à sous-munitions",
+    "Rocket": "Roquette",
+    "Time IED": "EEI à retardement",
+    "Command-operated IED": "EEI commandé",
+    "Victim-operated IED": "EEI déclenché par la victime",
+    "Other (IED)": "Autre EEI",
+    "Unknown (IED)": "Inconnu",
+    "Salw": "ALPC",
     "UXO": "Munition non explosée",
 
     # STATUT ENGIN
+    "Unexploded Ordnance": "Munition non explosée",
+    "Abandoned Ordnance": "Munition abandonnée",
     "Unknown": "Inconnu",
     "Active": "Actif",
     "Destroyed": "Détruit",
 
-    # AUTRES DOMMAGES
-    "House Livestock Fields": "Maison / bétail / champs",
-}
+    # SOURCE COORDONNEES
+    "GPS recorded on the spot": "GPS relevé sur place",
+    "GPS recorded closeby": "GPS relevé à proximité",
+    "Reported by unit on the ground without GPS": "Rapporté par l’équipe terrain sans GPS",
+    "Map estimation": "Estimation sur la carte",
+    "None": "Aucune",
 
+    # SEXE / SOURCE
+    "male": "Masculin",
+    "female": "Féminin",
+    "Family": "Famille",
+    "Medical": "Médical",
+    "Police": "Police",
+    "Victim": "Victime",
+    "Witness": "Témoin",
+    "Focal point": "Point focal",
+    "Community leader": "Leader communautaire",
+}
 
 def translate_accident_value(value):
     if not value:
         return value
 
     return ACCIDENT_VALUE_LABELS.get(value, value)
+
+TEAM_LABELS = {
+    "equipe1_aappor_sg": "Équipe 1 AAPPOR SG",
+    "equipe2_aappor_sg": "Équipe 2 AAPPOR SG",
+    "equipe3_aappor_sg": "Équipe 3 AAPPOR SG",
+    "equipe4_aappor_sg": "Équipe 4 AAPPOR SG",
+    "equipe1_aappor_mpt": "Équipe 1 AAPPOR MPT",
+    "equipe2_aappor_mpt": "Équipe 2 AAPPOR MPT",
+    "equipe1_gaas_mali": "Équipe 1 GAAS MALI",
+    "equipe2_gaas_mali": "Équipe 2 GAAS MALI",
+    "other": "Autre",
+}
+
+
+def translate_team(value):
+    if not value:
+        return value
+
+    return TEAM_LABELS.get(value, value)
 
 @csrf_exempt
 def kobo_accident_webhook(request):
@@ -1507,17 +1622,21 @@ def kobo_accident_webhook(request):
     "fonction",
     "reporting/fonction",
 ),
-                "team": get_kobo_value(
-    data,
-    "reporting/team_001",
-    "team_001",
-    "reporting/team",
-    "team",
+                "team": translate_team(
+    get_kobo_value(
+        data,
+        "reporting/team_001",
+        "team_001",
+        "reporting/team",
+        "team",
+    )
 ),
-                "funding_source": get_kobo_value(
-    data,
-    "reporting/funding_source",
-    "funding_source",
+               "funding_source": translate_accident_value(
+    get_kobo_value(
+        data,
+        "reporting/funding_source",
+        "funding_source",
+    )
 ),
                 "country": get_kobo_value(
                     data,
