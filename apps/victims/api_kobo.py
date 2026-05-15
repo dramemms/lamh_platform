@@ -629,6 +629,14 @@ def kobo_victim_webhook(request):
                 "source_first_name",
             ),
 
+            "source_last_name": get_kobo_value(
+    data,
+    "source_details/source_last_name",
+    "source_last_name",
+    "source_lastname",
+    "last_name",
+),
+
             "source_contact": val(
                 data,
                 "q3_4",

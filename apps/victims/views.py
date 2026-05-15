@@ -11,6 +11,7 @@ from django.db.models import Count, Q, Case, When, Value, CharField, F
 from django.db.models.functions import Lower, Trim
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .forms import VictimEditForm, VictimForm
 from .models import Victim, VictimChangeLog
@@ -284,6 +285,12 @@ def victim_add(request, accident_id):
             if hasattr(victim, "status") and not victim.status:
                 victim.status = Victim.STATUS_SUBMITTED
 
+            if hasattr(victim, "submitted_at") and not victim.submitted_at:
+                victim.submitted_at = timezone.now()
+
+            if hasattr(victim, "submitted_at_kobo") and not victim.submitted_at_kobo:
+                victim.submitted_at_kobo = timezone.now()
+
             victim.save()
             form.save_m2m()
 
@@ -319,125 +326,6 @@ def victim_add(request, accident_id):
             "accident": accident,
         },
     )
-
-@login_required
-def victim_detail(request, pk):
-    victim = get_victim_or_404(request.user, pk, with_logs=True)
-
-    payload_pretty = ""
-
-    if victim.raw_payload:
-        try:
-            payload_pretty = json.dumps(
-                victim.raw_payload,
-                indent=2,
-                ensure_ascii=False,
-            )
-        except Exception:
-            payload_pretty = str(victim.raw_payload)
-
-    context = {
-        "victim": victim,
-        "payload_pretty": payload_pretty,
-        "payload": victim.raw_payload,
-        "can_edit_victim": can_edit_accident(request.user),
-        "can_tech_verify": can_tech_verify(request.user),
-        "can_tech_validate": can_tech_validate(request.user),
-        "can_program_validate": can_program_validate(request.user),
-        "can_approve": can_approve(request.user),
-    }
-
-    return render(request, "victims/victim_detail.html", context)
-
-
-@login_required
-def victim_edit(request, pk):
-    victim = get_victim_or_404(request.user, pk)
-
-    if not can_edit_accident(request.user):
-        messages.error(request, "Non autorisé.")
-        return redirect("victim_detail", pk=pk)
-
-    if victim.status == Victim.STATUS_APPROVED:
-        messages.error(
-            request,
-            "Cette victime est approuvée et ne peut plus être modifiée.",
-        )
-        return redirect("victim_detail", pk=pk)
-
-    if request.method == "POST":
-        form = VictimEditForm(request.POST, instance=victim)
-
-        if form.is_valid():
-            comment = form.cleaned_data.get("comment", "").strip()
-
-            old_victim = Victim.objects.get(pk=victim.pk)
-            workflow_step_label = get_workflow_step_label(old_victim)
-
-            old_values = {}
-
-            for field_name in form.fields.keys():
-                if field_name == "comment":
-                    continue
-
-                old_values[field_name] = getattr(old_victim, field_name, None)
-
-            updated_victim = form.save(commit=False)
-            real_changes = []
-
-            for field_name in form.fields.keys():
-                if field_name == "comment":
-                    continue
-
-                old_value = old_values.get(field_name)
-                new_value = getattr(updated_victim, field_name, None)
-
-                if normalize_value(old_value) != normalize_value(new_value):
-                    field_label = form.fields[field_name].label or field_name
-
-                    real_changes.append(
-                        {
-                            "field_name": field_label,
-                            "old_value": display_value(old_value),
-                            "new_value": display_value(new_value),
-                        }
-                    )
-
-            if not real_changes:
-                messages.info(request, "Aucune modification réelle détectée.")
-                return redirect("victim_detail", pk=pk)
-
-            updated_victim.save()
-            form.save_m2m()
-
-            for change in real_changes:
-                VictimChangeLog.objects.create(
-                    victim=updated_victim,
-                    changed_by=request.user,
-                    workflow_step=workflow_step_label,
-                    field_name=change["field_name"],
-                    old_value=change["old_value"],
-                    new_value=change["new_value"],
-                    comment=comment or "-",
-                )
-
-            messages.success(request, "Victime modifiée avec succès.")
-            return redirect("victim_detail", pk=pk)
-
-        messages.error(request, "Le formulaire contient des erreurs.")
-
-    else:
-        form = VictimEditForm(instance=victim)
-
-    return render(
-        request,
-        "victims/victim_edit.html",
-        {
-            "victim": victim,
-            "form": form,
-        },
-    )
-
 
 @login_required
 def victim_transition(request, pk, action):
@@ -532,6 +420,124 @@ def victim_transition(request, pk, action):
         messages.error(request, str(e))
 
     return redirect("victim_detail", pk=pk)
+
+@login_required
+def victim_detail(request, pk):
+    victim = get_victim_or_404(request.user, pk, with_logs=True)
+
+    payload_pretty = ""
+
+    if victim.raw_payload:
+        try:
+            payload_pretty = json.dumps(
+                victim.raw_payload,
+                indent=2,
+                ensure_ascii=False,
+            )
+        except Exception:
+            payload_pretty = str(victim.raw_payload)
+
+    context = {
+        "victim": victim,
+        "payload_pretty": payload_pretty,
+        "payload": victim.raw_payload,
+        "can_edit_victim": can_edit_accident(request.user),
+        "can_tech_verify": can_tech_verify(request.user),
+        "can_tech_validate": can_tech_validate(request.user),
+        "can_program_validate": can_program_validate(request.user),
+        "can_approve": can_approve(request.user),
+    }
+
+    return render(request, "victims/victim_detail.html", context)
+
+
+
+@login_required
+def victim_edit(request, pk):
+    victim = get_victim_or_404(request.user, pk)
+
+    if not can_edit_accident(request.user):
+        messages.error(request, "Non autorisé.")
+        return redirect("victim_detail", pk=pk)
+
+    if victim.status == Victim.STATUS_APPROVED:
+        messages.error(
+            request,
+            "Cette victime est approuvée et ne peut plus être modifiée.",
+        )
+        return redirect("victim_detail", pk=pk)
+
+    if request.method == "POST":
+        form = VictimEditForm(request.POST, instance=victim)
+
+        if form.is_valid():
+            comment = form.cleaned_data.get("comment", "").strip()
+
+            old_victim = Victim.objects.get(pk=victim.pk)
+            workflow_step_label = get_workflow_step_label(old_victim)
+
+            old_values = {}
+
+            for field_name in form.fields.keys():
+                if field_name == "comment":
+                    continue
+
+                old_values[field_name] = getattr(old_victim, field_name, None)
+
+            updated_victim = form.save(commit=False)
+            real_changes = []
+
+            for field_name in form.fields.keys():
+                if field_name == "comment":
+                    continue
+
+                old_value = old_values.get(field_name)
+                new_value = getattr(updated_victim, field_name, None)
+
+                if normalize_value(old_value) != normalize_value(new_value):
+                    field_label = form.fields[field_name].label or field_name
+                    real_changes.append(
+                        {
+                            "field_name": field_label,
+                            "old_value": display_value(old_value),
+                            "new_value": display_value(new_value),
+                        }
+                    )
+
+            if not real_changes:
+                messages.info(request, "Aucune modification réelle détectée.")
+                return redirect("victim_detail", pk=pk)
+
+            updated_victim.save()
+            form.save_m2m()
+
+            for change in real_changes:
+                VictimChangeLog.objects.create(
+                    victim=updated_victim,
+                    changed_by=request.user,
+                    workflow_step=workflow_step_label,
+                    field_name=change["field_name"],
+                    old_value=change["old_value"],
+                    new_value=change["new_value"],
+                    comment=comment or "-",
+                )
+
+            messages.success(request, "Victime modifiée avec succès.")
+            return redirect("victim_detail", pk=pk)
+
+        messages.error(request, "Le formulaire contient des erreurs.")
+
+    else:
+        form = VictimEditForm(instance=victim)
+
+    return render(
+        request,
+        "victims/victim_edit.html",
+        {
+            "victim": victim,
+            "form": form,
+        },
+    )
 
 
 @login_required
@@ -1459,26 +1465,3 @@ def victim_add_assistance_kobo(request, pk):
     final_url = f"{kobo_url}{separator}{params}"
 
     return redirect(final_url)
-
-@login_required
-def victim_resubmit(request, pk):
-    victim = get_victim_or_404(pk)
-
-    if request.user != victim.created_by and not request.user.is_superuser:
-        messages.error(request, "Non autorisé.")
-        return redirect("victim_detail", pk=pk)
-
-    if victim.status != Victim.STATUS_RETURNED_FOR_CORRECTION:
-        messages.error(request, "Cette fiche victime ne peut pas être ressoumise.")
-        return redirect("victim_detail", pk=pk)
-
-    victim.transition_to(
-        Victim.STATUS_SUBMITTED,
-        user=request.user,
-        comment="Fiche victime corrigée et ressoumise.",
-    )
-
-    notify_victim_submitted(victim)
-
-    messages.success(request, "La fiche victime a été ressoumise avec succès.")
-    return redirect("victim_detail", pk=pk)
