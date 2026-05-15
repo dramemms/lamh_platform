@@ -373,13 +373,14 @@
 
   <div class="card shadow-sm mb-4 section-card">
     <div class="card-body info-grid">
-      <h5>Organisation / Reporting</h5>
-      <p><strong>Date du rapport :</strong> {{ accident.report_date|date:"d/m/Y"|default:"-" }}</p>
-      <p><strong>Organisation :</strong> {{ accident.org_name|default:"-" }}</p>
-      <p><strong>Rapporté par :</strong> {{ accident.reported_by|default:"-" }}</p>
-      <p><strong>Poste :</strong> {{ accident.position|default:"-" }}</p>
-      <p><strong>Equipe :</strong> {{ accident.team|default:"-" }}</p>
-      <p><strong>Source de financement :</strong> {{ accident.funding_source|default:"-" }}</p>
+<h5>Organisation / Reporting</h5>
+<p><strong>Date du rapport :</strong> {{ accident.report_date|date:"d/m/Y"|default:"-" }}</p>
+<p><strong>Organisation :</strong> {{ accident.org_name|default:"-" }}</p>
+<p><strong>Rapporté par :</strong> {{ accident.reported_by|default:"-" }}</p>
+<p><strong>Email :</strong> {{ accident.submitter_email|default:"-" }}</p>
+<p><strong>Poste :</strong> {{ accident.position|default:"-" }}</p>
+<p><strong>Equipe :</strong> {{ accident.team|default:"-" }}</p>
+<p><strong>Source de financement :</strong> {{ accident.funding_source|default:"-" }}</p>
     </div>
   </div>
 
