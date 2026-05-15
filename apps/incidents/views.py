@@ -1678,21 +1678,25 @@ def kobo_accident_webhook(request):
                     "source_details/source_contact",
                     "source_contact",
                 ),
-                "source_gender": get_kobo_value(
-                    data,
-                    "source_details/source_gender",
-                    "source_gender",
-                ),
+                "source_gender": translate_accident_value(
+    get_kobo_value(
+        data,
+        "source_details/source_gender",
+        "source_gender",
+    )
+),
                 "source_age": get_kobo_value(
                     data,
                     "source_details/source_age",
                     "source_age",
                 ),
-                "source_type": get_kobo_value(
-                    data,
-                    "source_details/source_type",
-                    "source_type",
-                ),
+              "source_type": translate_accident_value(
+    get_kobo_value(
+        data,
+        "source_details/source_type",
+        "source_type",
+    )
+),
                 "submitter_username": submitted_by,
                 "submitter_first_name": submitter_first_name,
                 "submitter_last_name": submitter_last_name,
