@@ -134,23 +134,41 @@
           ⬅ Retour à la liste
         </a>
 
-        {% if accident.is_fully_approved and kobo_victim_prefill_url %}
-          <a href="{{ kobo_victim_prefill_url }}"
-             target="_blank"
-             rel="noopener noreferrer"
-             class="btn btn-success btn-sm">
-            ➕ Ajouter une victime
-          </a>
-        {% elif accident.is_fully_approved %}
-          <a href="{% url 'victim_add' accident.pk %}" class="btn btn-success btn-sm">
-            ➕ Ajouter une victime
-          </a>
+        {% if accident.is_fully_approved %}
+
+    {% if victims_count < accident.number_victims %}
+
+        {% if kobo_victim_prefill_url %}
+            <a href="{{ kobo_victim_prefill_url }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="btn btn-success btn-sm">
+                ➕ Ajouter une victime
+            </a>
+
         {% else %}
-          <button class="btn btn-secondary btn-sm" disabled
-                  title="L'accident doit être entièrement approuvé avant l'ajout d'une victime.">
-            ➕ Ajouter une victime
-          </button>
+            <a href="{% url 'victim_add' accident.pk %}"
+               class="btn btn-success btn-sm">
+                ➕ Ajouter une victime
+            </a>
         {% endif %}
+
+    {% else %}
+
+        <button class="btn btn-secondary btn-sm" disabled>
+            Nombre maximal de victimes atteint
+        </button>
+
+    {% endif %}
+
+{% else %}
+
+    <button class="btn btn-secondary btn-sm" disabled
+            title="L'accident doit être entièrement approuvé avant l'ajout d'une victime.">
+        ➕ Ajouter une victime
+    </button>
+
+{% endif %}
 
         {% if can_edit_accident and accident.status != "APPROVED" %}
           <a href="{% url 'accident_edit' accident.pk %}" class="btn btn-danger btn-sm">

@@ -242,6 +242,19 @@ def victim_add(request, accident_id):
         pk=accident_id,
     )
 
+    # =========================
+    # LIMITER LE NOMBRE DE VICTIMES
+    # =========================
+    declared_victims = accident.number_victims or 0
+    current_victims = accident.victims.count()
+
+    if declared_victims and current_victims >= declared_victims:
+        messages.error(
+            request,
+            "Le nombre maximal de victimes pour cet accident est déjà atteint.",
+        )
+        return redirect("accident_detail", pk=accident.id)
+
     if not accident.is_fully_approved:
         messages.error(
             request,
@@ -306,7 +319,6 @@ def victim_add(request, accident_id):
             "accident": accident,
         },
     )
-
 
 @login_required
 def victim_detail(request, pk):
