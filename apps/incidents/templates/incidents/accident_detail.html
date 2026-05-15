@@ -441,10 +441,10 @@
 <p><strong>Vérifié techniquement par :</strong>
 {{ accident.tech_verified_by|default:"-" }}</p>
       <p><strong>Validé techniquement le :</strong> {{ accident.tech_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
+       <p><strong>Validé techniquement par :</strong> {{ accident.tech_validated_by|default:"-" }}</p>
       <p><strong>Validé programme le :</strong> {{ accident.program_validated_at|date:"d/m/Y H:i"|default:"-" }}</p>
-      <p><strong>Approuvé le :</strong> {{ accident.approved_at|date:"d/m/Y H:i"|default:"-" }}</p>
-      <p><strong>Validé techniquement par :</strong> {{ accident.tech_validated_by|default:"-" }}</p>
       <p><strong>Validé programme par :</strong> {{ accident.program_validated_by|default:"-" }}</p>
+      <p><strong>Approuvé le :</strong> {{ accident.approved_at|date:"d/m/Y H:i"|default:"-" }}</p>
       <p><strong>Approuvé par :</strong> {{ accident.approved_by|default:"-" }}</p>
     </div>
   </div>
