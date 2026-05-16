@@ -2,7 +2,7 @@
 
 import json
 
-from django.db.models import Q
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_date
@@ -139,9 +139,8 @@ def kobo_victim_webhook(request):
         accident_reference = str(accident_reference).strip()
 
         accident = Accident.objects.filter(
-            Q(reference__iexact=accident_reference)
-            | Q(accident_reference__iexact=accident_reference)
-        ).first()
+    reference__iexact=accident_reference
+).first()
 
         if not accident:
             return JsonResponse(
