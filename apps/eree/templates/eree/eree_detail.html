@@ -72,8 +72,14 @@
         margin-bottom: 10px;
     }
 
+    .table-responsive-custom {
+        width: 100%;
+        overflow-x: auto;
+    }
+
     .sub-table {
         width: 100%;
+        min-width: 1100px;
         border-collapse: collapse;
         margin-top: 10px;
     }
@@ -83,13 +89,20 @@
         border: 1px solid #e5e7eb;
         padding: 10px 12px;
         text-align: center;
-        font-size: .95rem;
+        font-size: .92rem;
     }
 
     .sub-table th {
         background: #f8fafc;
         font-weight: 800;
         color: #0f172a;
+    }
+
+    .sub-table td:first-child,
+    .sub-table th:first-child {
+        text-align: left;
+        font-weight: 800;
+        background: #f8fafc;
     }
 
     @media (max-width: 900px) {
@@ -147,18 +160,18 @@
 
             <div class="actions-row">
                 <a href="{% url 'eree_list' %}" class="btn btn-outline-secondary">← Retour à la liste</a>
-                {% if can_edit or can_edit_eree %}
-               <a href="{% url 'eree_edit' session.pk %}" class="btn btn-outline-primary">
-                   Modifier
-              </a>
-            {% endif %}
 
-            {% if session.status == "RETURNED_FOR_CORRECTION" and request.user == session.created_by or user.is_superuser %}
-            <a href="{% url 'eree_resubmit' session.pk %}" class="btn btn-warning">
-            Ressoumettre
-            </a>
-            {% endif %}
-               
+                {% if can_edit or can_edit_eree %}
+                    <a href="{% url 'eree_edit' session.pk %}" class="btn btn-outline-primary">
+                        Modifier
+                    </a>
+                {% endif %}
+
+                {% if session.status == "RETURNED_FOR_CORRECTION" and request.user == session.created_by or user.is_superuser %}
+                    <a href="{% url 'eree_resubmit' session.pk %}" class="btn btn-warning">
+                        Ressoumettre
+                    </a>
+                {% endif %}
 
                 {% if can_tech_validate and session.status == "SUBMITTED" %}
                     <a href="{% url 'eree_tech_validate' session.pk %}" class="btn btn-primary">
@@ -329,21 +342,6 @@
                 </div>
 
                 <div class="info-item">
-                    <span class="info-label">Code région Kobo</span>
-                    <div class="info-value">{{ session.region_code|default:"-" }}</div>
-                </div>
-
-                <div class="info-item">
-                    <span class="info-label">Code cercle Kobo</span>
-                    <div class="info-value">{{ session.cercle_code|default:"-" }}</div>
-                </div>
-
-                <div class="info-item">
-                    <span class="info-label">Code commune Kobo</span>
-                    <div class="info-value">{{ session.commune_code|default:"-" }}</div>
-                </div>
-
-                <div class="info-item">
                     <span class="info-label">Région</span>
                     <div class="info-value">{{ session.region.name|default:"-" }}</div>
                 </div>
@@ -405,75 +403,109 @@
         <div class="card-body">
             <div class="section-title">Participants PDI</div>
 
-            <table class="sub-table">
-                <thead>
-                    <tr>
-                        <th>Catégorie</th>
-                        <th>Garçons / Hommes</th>
-                        <th>Handicap</th>
-                        <th>Filles / Femmes</th>
-                        <th>Handicap</th>
-                    </tr>
-                </thead>
+            <div class="table-responsive-custom">
+                <table class="sub-table">
+                    <thead>
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Garçons</th>
+                            <th>Garçons Handicap</th>
+                            <th>Hommes</th>
+                            <th>Hommes Handicap</th>
+                            <th>Filles</th>
+                            <th>Filles Handicap</th>
+                            <th>Femmes</th>
+                            <th>Femmes Handicap</th>
+                        </tr>
+                    </thead>
 
-                <tbody>
-                    <tr>
-                        <td>0-5 ans</td>
-                        <td>{{ session.pdi_boys_0_5 }}</td>
-                        <td>{{ session.pdi_boys_0_5_dis }}</td>
-                        <td>{{ session.pdi_girls_0_5 }}</td>
-                        <td>{{ session.pdi_girls_0_5_dis }}</td>
-                    </tr>
+                    <tbody>
+                        <tr>
+                            <td>0-5 ans</td>
+                            <td>{{ session.pdi_boys_0_5 }}</td>
+                            <td>{{ session.pdi_boys_0_5_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_girls_0_5 }}</td>
+                            <td>{{ session.pdi_girls_0_5_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
 
-                    <tr>
-                        <td>6-14 ans</td>
-                        <td>{{ session.pdi_boys_6_14 }}</td>
-                        <td>{{ session.pdi_boys_6_14_dis }}</td>
-                        <td>{{ session.pdi_girls_6_14 }}</td>
-                        <td>{{ session.pdi_girls_6_14_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>6-14 ans</td>
+                            <td>{{ session.pdi_boys_6_14 }}</td>
+                            <td>{{ session.pdi_boys_6_14_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_girls_6_14 }}</td>
+                            <td>{{ session.pdi_girls_6_14_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
 
-                    <tr>
-                        <td>15-17 ans</td>
-                        <td>{{ session.pdi_boys_15_17 }}</td>
-                        <td>{{ session.pdi_boys_15_17_dis }}</td>
-                        <td>{{ session.pdi_girls_15_17 }}</td>
-                        <td>{{ session.pdi_girls_15_17_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>15-17 ans</td>
+                            <td>{{ session.pdi_boys_15_17 }}</td>
+                            <td>{{ session.pdi_boys_15_17_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_girls_15_17 }}</td>
+                            <td>{{ session.pdi_girls_15_17_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
 
-                    <tr>
-                        <td>18-24 ans</td>
-                        <td>{{ session.pdi_men_18_24 }}</td>
-                        <td>{{ session.pdi_men_18_24_dis }}</td>
-                        <td>{{ session.pdi_women_18_24 }}</td>
-                        <td>{{ session.pdi_women_18_24_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>18-24 ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_men_18_24 }}</td>
+                            <td>{{ session.pdi_men_18_24_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_women_18_24 }}</td>
+                            <td>{{ session.pdi_women_18_24_dis }}</td>
+                        </tr>
 
-                    <tr>
-                        <td>25-49 ans</td>
-                        <td>{{ session.pdi_men_25_49 }}</td>
-                        <td>{{ session.pdi_men_25_49_dis }}</td>
-                        <td>{{ session.pdi_women_25_49 }}</td>
-                        <td>{{ session.pdi_women_25_49_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>25-49 ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_men_25_49 }}</td>
+                            <td>{{ session.pdi_men_25_49_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_women_25_49 }}</td>
+                            <td>{{ session.pdi_women_25_49_dis }}</td>
+                        </tr>
 
-                    <tr>
-                        <td>50-59 ans</td>
-                        <td>{{ session.pdi_men_50_59 }}</td>
-                        <td>{{ session.pdi_men_50_59_dis }}</td>
-                        <td>{{ session.pdi_women_50_59 }}</td>
-                        <td>{{ session.pdi_women_50_59_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>50-59 ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_men_50_59 }}</td>
+                            <td>{{ session.pdi_men_50_59_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_women_50_59 }}</td>
+                            <td>{{ session.pdi_women_50_59_dis }}</td>
+                        </tr>
 
-                    <tr>
-                        <td>60+ ans</td>
-                        <td>{{ session.pdi_men_60_plus }}</td>
-                        <td>{{ session.pdi_men_60_plus_dis }}</td>
-                        <td>{{ session.pdi_women_60_plus }}</td>
-                        <td>{{ session.pdi_women_60_plus_dis }}</td>
-                    </tr>
-                </tbody>
-            </table>
+                        <tr>
+                            <td>60+ ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_men_60_plus }}</td>
+                            <td>{{ session.pdi_men_60_plus_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.pdi_women_60_plus }}</td>
+                            <td>{{ session.pdi_women_60_plus_dis }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -482,75 +514,109 @@
         <div class="card-body">
             <div class="section-title">Participants communauté hôte</div>
 
-            <table class="sub-table">
-                <thead>
-                    <tr>
-                        <th>Catégorie</th>
-                        <th>Garçons / Hommes</th>
-                        <th>Handicap</th>
-                        <th>Filles / Femmes</th>
-                        <th>Handicap</th>
-                    </tr>
-                </thead>
+            <div class="table-responsive-custom">
+                <table class="sub-table">
+                    <thead>
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Garçons</th>
+                            <th>Garçons Handicap</th>
+                            <th>Hommes</th>
+                            <th>Hommes Handicap</th>
+                            <th>Filles</th>
+                            <th>Filles Handicap</th>
+                            <th>Femmes</th>
+                            <th>Femmes Handicap</th>
+                        </tr>
+                    </thead>
 
-                <tbody>
-                    <tr>
-                        <td>0-5 ans</td>
-                        <td>{{ session.ch_boys_0_5 }}</td>
-                        <td>{{ session.ch_boys_0_5_dis }}</td>
-                        <td>{{ session.ch_girls_0_5 }}</td>
-                        <td>{{ session.ch_girls_0_5_dis }}</td>
-                    </tr>
+                    <tbody>
+                        <tr>
+                            <td>0-5 ans</td>
+                            <td>{{ session.ch_boys_0_5 }}</td>
+                            <td>{{ session.ch_boys_0_5_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_girls_0_5 }}</td>
+                            <td>{{ session.ch_girls_0_5_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
 
-                    <tr>
-                        <td>6-14 ans</td>
-                        <td>{{ session.ch_boys_6_14 }}</td>
-                        <td>{{ session.ch_boys_6_14_dis }}</td>
-                        <td>{{ session.ch_girls_6_14 }}</td>
-                        <td>{{ session.ch_girls_6_14_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>6-14 ans</td>
+                            <td>{{ session.ch_boys_6_14 }}</td>
+                            <td>{{ session.ch_boys_6_14_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_girls_6_14 }}</td>
+                            <td>{{ session.ch_girls_6_14_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
 
-                    <tr>
-                        <td>15-17 ans</td>
-                        <td>{{ session.ch_boys_15_17 }}</td>
-                        <td>{{ session.ch_boys_15_17_dis }}</td>
-                        <td>{{ session.ch_girls_15_17 }}</td>
-                        <td>{{ session.ch_girls_15_17_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>15-17 ans</td>
+                            <td>{{ session.ch_boys_15_17 }}</td>
+                            <td>{{ session.ch_boys_15_17_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_girls_15_17 }}</td>
+                            <td>{{ session.ch_girls_15_17_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
 
-                    <tr>
-                        <td>18-24 ans</td>
-                        <td>{{ session.ch_men_18_24 }}</td>
-                        <td>{{ session.ch_men_18_24_dis }}</td>
-                        <td>{{ session.ch_women_18_24 }}</td>
-                        <td>{{ session.ch_women_18_24_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>18-24 ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_men_18_24 }}</td>
+                            <td>{{ session.ch_men_18_24_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_women_18_24 }}</td>
+                            <td>{{ session.ch_women_18_24_dis }}</td>
+                        </tr>
 
-                    <tr>
-                        <td>25-49 ans</td>
-                        <td>{{ session.ch_men_25_49 }}</td>
-                        <td>{{ session.ch_men_25_49_dis }}</td>
-                        <td>{{ session.ch_women_25_49 }}</td>
-                        <td>{{ session.ch_women_25_49_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>25-49 ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_men_25_49 }}</td>
+                            <td>{{ session.ch_men_25_49_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_women_25_49 }}</td>
+                            <td>{{ session.ch_women_25_49_dis }}</td>
+                        </tr>
 
-                    <tr>
-                        <td>50-59 ans</td>
-                        <td>{{ session.ch_men_50_59 }}</td>
-                        <td>{{ session.ch_men_50_59_dis }}</td>
-                        <td>{{ session.ch_women_50_59 }}</td>
-                        <td>{{ session.ch_women_50_59_dis }}</td>
-                    </tr>
+                        <tr>
+                            <td>50-59 ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_men_50_59 }}</td>
+                            <td>{{ session.ch_men_50_59_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_women_50_59 }}</td>
+                            <td>{{ session.ch_women_50_59_dis }}</td>
+                        </tr>
 
-                    <tr>
-                        <td>60+ ans</td>
-                        <td>{{ session.ch_men_60_plus }}</td>
-                        <td>{{ session.ch_men_60_plus_dis }}</td>
-                        <td>{{ session.ch_women_60_plus }}</td>
-                        <td>{{ session.ch_women_60_plus_dis }}</td>
-                    </tr>
-                </tbody>
-            </table>
+                        <tr>
+                            <td>60+ ans</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_men_60_plus }}</td>
+                            <td>{{ session.ch_men_60_plus_dis }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>{{ session.ch_women_60_plus }}</td>
+                            <td>{{ session.ch_women_60_plus_dis }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
