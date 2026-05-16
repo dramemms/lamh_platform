@@ -138,20 +138,43 @@ def kobo_victim_webhook(request):
 
         accident_reference = str(accident_reference).strip()
 
+        # =====================================================
+        # DATE ACCIDENT KOBO
+        # =====================================================
+
+        accident_date = parse_date(
+            str(
+                val(
+                    data,
+                    "accident_date",
+                    "g_report/accident_date",
+                    "date_accident",
+                    "q1_4",
+                ) or ""
+            )
+        )
+
+        # =====================================================
+        # RECHERCHE ACCIDENT
+        # =====================================================
+
         accident = Accident.objects.filter(
-    reference__iexact=accident_reference
-).first()
+            reference__iexact=accident_reference,
+            accident_date=accident_date,
+        ).first()
 
         if not accident:
             return JsonResponse(
                 {
                     "error": (
-                        f"Aucun accident trouvé avec le numéro : "
-                        f"{accident_reference}"
+                        f"Aucun accident trouvé avec "
+                        f"le numéro {accident_reference} "
+                        f"et la date {accident_date}"
                     )
                 },
                 status=400
             )
+
 
         # =====================================================
         # GEO
