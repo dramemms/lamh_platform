@@ -264,6 +264,24 @@ class Accident(ValidationWorkflowMixin, models.Model):
     correction_comment = models.TextField("Commentaire de correction", blank=True, null=True)
 
     submitted_at = models.DateTimeField("Soumis le", blank=True, null=True)
+     
+    tech_verified_at = models.DateTimeField(
+    "Vérifié techniquement le",
+    blank=True,
+    null=True,
+)
+
+    tech_verified_by = models.ForeignKey(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="accidents_tech_verified",
+    verbose_name="Vérifié techniquement par",
+)
+
+
+
 
     tech_validated_at = models.DateTimeField("Validé techniquement le", blank=True, null=True)
     tech_validated_by = models.ForeignKey(
@@ -338,24 +356,33 @@ class Accident(ValidationWorkflowMixin, models.Model):
 
     def transition_to(self, new_status, user=None, reason=None, comment=None):
         allowed = {
-           
-            self.STATUS_SUBMITTED: {
-    self.STATUS_TECH_VALIDATED,
-    self.STATUS_RETURNED_FOR_CORRECTION,  # ✅ AJOUT
-},
-            self.STATUS_TECH_VALIDATED: {
-                self.STATUS_PROGRAM_VALIDATED,
-                self.STATUS_RETURNED_FOR_CORRECTION,
-            },
-            self.STATUS_PROGRAM_VALIDATED: {
-                self.STATUS_APPROVED,
-                self.STATUS_TECH_VALIDATED,
-            },
-            self.STATUS_RETURNED_FOR_CORRECTION: {
-                self.STATUS_SUBMITTED,
-            },
-            self.STATUS_APPROVED: set(),
-        }
+
+    self.STATUS_SUBMITTED: {
+        self.STATUS_TECH_VERIFIED,
+        self.STATUS_RETURNED_FOR_CORRECTION,
+    },
+
+    self.STATUS_TECH_VERIFIED: {
+        self.STATUS_TECH_VALIDATED,
+        self.STATUS_RETURNED_FOR_CORRECTION,
+    },
+
+    self.STATUS_TECH_VALIDATED: {
+        self.STATUS_PROGRAM_VALIDATED,
+        self.STATUS_RETURNED_FOR_CORRECTION,
+    },
+
+    self.STATUS_PROGRAM_VALIDATED: {
+        self.STATUS_APPROVED,
+        self.STATUS_TECH_VALIDATED,
+    },
+
+    self.STATUS_RETURNED_FOR_CORRECTION: {
+        self.STATUS_SUBMITTED,
+    },
+
+    self.STATUS_APPROVED: set(),
+}
 
         current = self.status
 
@@ -385,7 +412,13 @@ class Accident(ValidationWorkflowMixin, models.Model):
             self.program_validated_by = None
             self.approved_at = None
             self.approved_by = None
+        elif new_status == self.STATUS_TECH_VERIFIED:
+             self.status = self.STATUS_TECH_VERIFIED
+             self.tech_verified_at = stamp
+             self.tech_verified_by = user
 
+             self.rejection_reason = None
+             self.correction_comment = None
         elif new_status == self.STATUS_TECH_VALIDATED:
             self.status = self.STATUS_TECH_VALIDATED
             self.tech_validated_at = stamp
