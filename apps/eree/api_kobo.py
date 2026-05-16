@@ -7,10 +7,11 @@ from django.http import JsonResponse
 from django.utils.dateparse import parse_date, parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 
+
 from apps.geo.models import Region, Cercle, Commune
 from apps.notifications.services import notify_eree_submitted
 
-from .models import EREESession
+from .models import EREESession, EREEDisaggregation
 
 
 
@@ -403,6 +404,81 @@ def kobo_eree_webhook(request):
             "raw_payload": data,
         },
     )
+    
+    # =====================================================
+    # DESAGREGATION
+    # =====================================================
+
+    obj.disaggregations.all().delete()
+
+    AGE_GROUPS = [
+        ("0_5", "0_5"),
+        ("6_14", "6_14"),
+        ("15_17", "15_17"),
+        ("18_24", "18_24"),
+        ("25_49", "25_49"),
+        ("50_59", "50_59"),
+        ("60_plus", "60_plus"),
+    ]
+
+    for age_group, suffix in AGE_GROUPS:
+
+        boys = (
+            _to_int(data.get(f"g_pdi/pdi_boys_{suffix}"))
+            + _to_int(data.get(f"g_ch/ch_boys_{suffix}"))
+        )
+
+        boys_disabled = (
+            _to_int(data.get(f"g_pdi/pdi_boys_{suffix}_dis"))
+            + _to_int(data.get(f"g_ch/ch_boys_{suffix}_dis"))
+        )
+
+        girls = (
+            _to_int(data.get(f"g_pdi/pdi_girls_{suffix}"))
+            + _to_int(data.get(f"g_ch/ch_girls_{suffix}"))
+        )
+
+        girls_disabled = (
+            _to_int(data.get(f"g_pdi/pdi_girls_{suffix}_dis"))
+            + _to_int(data.get(f"g_ch/ch_girls_{suffix}_dis"))
+        )
+
+        men = (
+            _to_int(data.get(f"g_pdi/pdi_men_{suffix}"))
+            + _to_int(data.get(f"g_ch/ch_men_{suffix}"))
+        )
+
+        men_disabled = (
+            _to_int(data.get(f"g_pdi/pdi_men_{suffix}_dis"))
+            + _to_int(data.get(f"g_ch/ch_men_{suffix}_dis"))
+        )
+
+        women = (
+            _to_int(data.get(f"g_pdi/pdi_women_{suffix}"))
+            + _to_int(data.get(f"g_ch/ch_women_{suffix}"))
+        )
+
+        women_disabled = (
+            _to_int(data.get(f"g_pdi/pdi_women_{suffix}_dis"))
+            + _to_int(data.get(f"g_ch/ch_women_{suffix}_dis"))
+        )
+
+        EREEDisaggregation.objects.create(
+            eree=obj,
+            age_group=age_group,
+
+            boys=boys,
+            boys_disabled=boys_disabled,
+
+            men=men,
+            men_disabled=men_disabled,
+
+            girls=girls,
+            girls_disabled=girls_disabled,
+
+            women=women,
+            women_disabled=women_disabled,
+        )
 
     
     if obj.status == EREESession.STATUS_DRAFT:
@@ -413,7 +489,7 @@ def kobo_eree_webhook(request):
     if created:
         notify_eree_submitted(obj)
 
-    return JsonResponse(
+        return JsonResponse(
         {
             "success": True,
             "created": created,

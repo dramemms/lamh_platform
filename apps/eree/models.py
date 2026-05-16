@@ -429,3 +429,79 @@ class EREESessionChangeLog(models.Model):
 
     def __str__(self):
         return f"{self.field_name} modifié par {self.changed_by}"
+    
+
+class EREEDisaggregation(models.Model):
+
+    AGE_CHOICES = [
+        ("0_5", "0-5 ans"),
+        ("6_14", "6-14 ans"),
+        ("15_17", "15-17 ans"),
+        ("18_24", "18-24 ans"),
+        ("25_49", "25-49 ans"),
+        ("50_59", "50-59 ans"),
+        ("60_plus", "60+ ans"),
+    ]
+
+    eree = models.ForeignKey(
+        "EREESession",
+        on_delete=models.CASCADE,
+        related_name="disaggregations"
+    )
+
+    age_group = models.CharField(
+        max_length=20,
+        choices=AGE_CHOICES
+    )
+
+    # =====================================================
+    # GARÇONS
+    # =====================================================
+
+    boys = models.PositiveIntegerField(default=0)
+
+    boys_disabled = models.PositiveIntegerField(default=0)
+
+    # =====================================================
+    # HOMMES
+    # =====================================================
+
+    men = models.PositiveIntegerField(default=0)
+
+    men_disabled = models.PositiveIntegerField(default=0)
+
+    # =====================================================
+    # FILLES
+    # =====================================================
+
+    girls = models.PositiveIntegerField(default=0)
+
+    girls_disabled = models.PositiveIntegerField(default=0)
+
+    # =====================================================
+    # FEMMES
+    # =====================================================
+
+    women = models.PositiveIntegerField(default=0)
+
+    women_disabled = models.PositiveIntegerField(default=0)
+
+    # =====================================================
+    # TOTAL
+    # =====================================================
+
+    @property
+    def total(self):
+        return (
+            self.boys
+            + self.boys_disabled
+            + self.men
+            + self.men_disabled
+            + self.girls
+            + self.girls_disabled
+            + self.women
+            + self.women_disabled
+        )
+
+    def __str__(self):
+        return f"{self.eree} - {self.get_age_group_display()}"
