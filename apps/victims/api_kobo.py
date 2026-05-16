@@ -2,6 +2,7 @@
 
 import json
 
+from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_date
@@ -9,10 +10,7 @@ from django.utils.dateparse import parse_date
 from apps.geo.models import Cercle, Commune, Region
 from apps.incidents.models import Accident
 from apps.victims.models import Victim
-
 from apps.notifications.services import notify_victim_submitted
-
-
 
 
 # =========================================================
@@ -20,19 +18,14 @@ from apps.notifications.services import notify_victim_submitted
 # =========================================================
 
 def val(data, *keys, default=None):
-
     for key in keys:
-
         value = data.get(key)
-
         if value not in [None, "", "null"]:
             return value
-
     return default
 
 
 def parse_bool(value):
-
     return str(value).strip().lower() in [
         "true",
         "oui",
@@ -44,36 +37,26 @@ def parse_bool(value):
 
 
 def parse_int(value):
-
     try:
-
         if value in [None, "", "null"]:
             return None
-
         return int(float(value))
-
     except Exception:
         return None
 
 
 def clean_coord(value):
-
     try:
-
         if value in [None, "", "null"]:
             return None
 
         value = str(value).strip()
-
-        # Cas GPS Kobo complet
-        # "14.123456 -7.123456 0 5"
 
         if " " in value:
             value = value.split()[0]
 
         number = round(float(value), 6)
 
-        # sécurité DecimalField
         if abs(number) >= 1000:
             return None
 
@@ -84,28 +67,20 @@ def clean_coord(value):
 
 
 def get_obj_by_code_or_name(model, value):
-
     if not value:
         return None
 
     value = str(value).strip()
 
     obj = model.objects.filter(code=value).first()
-
     if obj:
         return obj
 
-    return model.objects.filter(
-        name__iexact=value
-    ).first()
+    return model.objects.filter(name__iexact=value).first()
 
 
 def only_existing_fields(model, values):
-
-    model_fields = {
-        field.name
-        for field in model._meta.fields
-    }
+    model_fields = {field.name for field in model._meta.fields}
 
     return {
         key: value
@@ -122,18 +97,13 @@ def only_existing_fields(model, values):
 def kobo_victim_webhook(request):
 
     if request.method != "POST":
-
         return JsonResponse(
             {"error": "Méthode non autorisée"},
             status=405
         )
 
     try:
-
-        payload = json.loads(
-            request.body.decode("utf-8")
-        )
-
+        payload = json.loads(request.body.decode("utf-8"))
         data = payload.get("data", payload)
 
         # =====================================================
@@ -144,31 +114,44 @@ def kobo_victim_webhook(request):
             data,
             "accident_id",
             "g_report/accident_id",
+            "g_report/accident_reference",
             "g_identite/accident_id",
+            "g_identite/accident_reference",
             "accident_reference",
+            "reference",
             "id_accident",
+            "numero_accident",
+            "num_accident",
             "q1_3",
         )
 
         if not accident_reference:
-
             return JsonResponse(
-                {"error": "accident_id manquant"},
+                {
+                    "error": (
+                        "Le numéro d'accident est obligatoire "
+                        "pour créer une victime."
+                    )
+                },
                 status=400
             )
 
+        accident_reference = str(accident_reference).strip()
+
         accident = Accident.objects.filter(
-            reference=accident_reference
+            Q(reference__iexact=accident_reference)
+            | Q(accident_reference__iexact=accident_reference)
         ).first()
 
         if not accident:
-
             return JsonResponse(
                 {
-                    "error":
-                    f"Accident introuvable : {accident_reference}"
+                    "error": (
+                        f"Aucun accident trouvé avec le numéro : "
+                        f"{accident_reference}"
+                    )
                 },
-                status=400,
+                status=400
             )
 
         # =====================================================
@@ -229,11 +212,9 @@ def kobo_victim_webhook(request):
         gps_lon = None
 
         if gps_value:
-
             parts = str(gps_value).split()
 
             if len(parts) >= 2:
-
                 gps_lat = clean_coord(parts[0])
                 gps_lon = clean_coord(parts[1])
 
@@ -281,7 +262,6 @@ def kobo_victim_webhook(request):
         # =====================================================
 
         values = {
-
             # =================================================
             # SYSTEME
             # =================================================
@@ -297,7 +277,7 @@ def kobo_victim_webhook(request):
             # =================================================
 
             "accident": accident,
-            "accident_reference": accident.reference,
+            "accident_reference": getattr(accident, "reference", accident_reference),
 
             # =================================================
             # REPORTING
@@ -620,7 +600,10 @@ def kobo_victim_webhook(request):
             "source_last_name": val(
                 data,
                 "q3_2_2",
+                "source_details/source_last_name",
                 "source_last_name",
+                "source_lastname",
+                "last_name",
             ),
 
             "source_first_name": val(
@@ -628,14 +611,6 @@ def kobo_victim_webhook(request):
                 "q3_3",
                 "source_first_name",
             ),
-
-            "source_last_name": get_kobo_value(
-    data,
-    "source_details/source_last_name",
-    "source_last_name",
-    "source_lastname",
-    "last_name",
-),
 
             "source_contact": val(
                 data,
@@ -684,26 +659,24 @@ def kobo_victim_webhook(request):
             Victim,
             values
         )
-        
+
         victim = Victim.objects.create(
             **values
         )
 
         notify_victim_submitted(victim)
 
-             
-
         return JsonResponse(
             {
                 "success": True,
                 "victim_pk": victim.pk,
                 "victim_id": victim.victim_id,
+                "accident_reference": accident_reference,
             },
             status=201,
         )
 
     except Exception as e:
-
         print("ERREUR WEBHOOK VICTIM :", str(e))
 
         return JsonResponse(
